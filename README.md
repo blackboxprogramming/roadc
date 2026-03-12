@@ -93,3 +93,11 @@ python roadc.py
 ## License
 
 Proprietary — BlackRoad OS, Inc.
+
+## Related Projects
+
+| Project | Description |
+|---------|-------------|
+| [RoadC Playground](https://github.com/blackboxprogramming/roadc-playground) | Interactive browser IDE for RoadC |
+| [Universal Computer](https://github.com/blackboxprogramming/universal-computer) | Turing machine simulator |
+| [Quantum Math Lab](https://github.com/blackboxprogramming/quantum-math-lab) | Mathematical computation toolkit |
