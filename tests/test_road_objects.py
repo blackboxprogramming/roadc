@@ -41,6 +41,8 @@ fun stop(device):
     return "stopped"
 
 fun status(device):
+    if not has_permission(device, "status"):
+        return "permission denied"
     record(device, "status")
     if device.online:
         return "online"
@@ -112,3 +114,15 @@ let result = dispatch("start", alexandria)
     assert interpreter.global_env.get("result") == "permission denied"
     assert alexandria["online"] is False
     assert alexandria["history"] == []
+
+
+def test_status_permission_is_enforced_without_recording_denied_read():
+    source = RUNTIME + r'''
+let restricted = make_device("Restricted", "Test", {"start"})
+let result = dispatch("status", restricted)
+'''
+    interpreter = run(source)
+    restricted = interpreter.global_env.get("restricted")
+
+    assert interpreter.global_env.get("result") == "permission denied"
+    assert restricted["history"] == []
