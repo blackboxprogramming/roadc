@@ -20,11 +20,11 @@ def run(source: str) -> Interpreter:
 
 def test_route_action_envelope_is_plain_road_data():
     source = r'''
-fun action(actor, verb, target, input):
-    return {"version": "road-action/0.1", "actor": actor, "action": verb, "target": target, "input": input}
+fun action(actor, verb, target, input, requires, source):
+    return {"version": "road-action/0.1", "actor": actor, "action": verb, "target": target, "input": input, "requires": requires, "authority": {"mode": "self", "scope": "road://self"}, "provenance": {"source": source}}
 
 let target = "road://self/roadies/lucidia"
-let request = action("alexa", "ask", target, {"prompt": "hello"})
+let request = action("alexa", "ask", target, {"prompt": "hello"}, ["ask"], "tests/test_route_actions.py")
 '''
     interpreter = run(source)
     request = interpreter.global_env.get("request")
@@ -35,7 +35,26 @@ let request = action("alexa", "ask", target, {"prompt": "hello"})
         "action": "ask",
         "target": "road://self/roadies/lucidia",
         "input": {"prompt": "hello"},
+        "requires": ["ask"],
+        "authority": {"mode": "self", "scope": "road://self"},
+        "provenance": {"source": "tests/test_route_actions.py"},
     }
+
+
+def test_boundary_metadata_is_explicit_data():
+    source = r'''
+let requires = ["deploy"]
+let authority = {"mode": "self", "scope": "road://self"}
+let provenance = {"source": "test"}
+'''
+    interpreter = run(source)
+
+    assert interpreter.global_env.get("requires") == ["deploy"]
+    assert interpreter.global_env.get("authority") == {
+        "mode": "self",
+        "scope": "road://self",
+    }
+    assert interpreter.global_env.get("provenance") == {"source": "test"}
 
 
 def test_route_is_identity_not_permission():
