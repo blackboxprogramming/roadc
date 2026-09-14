@@ -174,3 +174,17 @@ The checker reports all six components, hashes required files, and checks that
 their canon copies agree. It does not execute repository code, load models,
 connect providers, or establish deployment readiness. See the
 [ecosystem contract](https://github.com/blackboxprogramming/RoadOS/blob/main/ECOSYSTEM.md).
+
+### Compare local observations
+
+From the parent of the six sibling checkouts:
+
+```bash
+python3 RoadOS/ecosystem.py --root . --save baseline.json
+python3 RoadOS/ecosystem.py --root . --baseline baseline.json --save current.json
+```
+
+Snapshots preserve file hashes and canon agreement across Road, RoadOS, and
+Roadies. The comparison identifies changed, newly observed, or no longer observed
+files. Existing snapshot files are never overwritten. These checks do not run
+repository code or connect providers. See [comparison behavior and exit codes](https://github.com/blackboxprogramming/RoadOS/blob/main/ECOSYSTEM.md#save-and-compare-observations).
