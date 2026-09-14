@@ -155,3 +155,7 @@ Built by [BlackRoad OS, Inc.](https://github.com/BlackRoad-OS-Inc).
 [search.blackroad.io](https://search.blackroad.io)
 
 *Remember the Road. Pave Tomorrow.*
+
+## RoadOS source integration
+
+Browse this clone's committed source in RoadOS Code and import selected files with commit/blob provenance. [Setup and language compatibility](docs/ROADOS_INTEGRATION.md).
