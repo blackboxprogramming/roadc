@@ -119,18 +119,15 @@ Proprietary — BlackRoad OS, Inc.
 
 ---
 
-## About BlackRoad OS
+## About BlackRoad
 
-BlackRoad OS is a sovereign computing platform that runs AI locally on your own
-hardware — no cloud dependencies, no API keys, no surveillance. Built by
-[BlackRoad OS, Inc.](https://github.com/BlackRoad-OS-Inc), a Delaware C-Corp
-founded in 2025.
+**BlackRoad** is the ecosystem. **RoadOS** is the portable computer and control environment where people access their work and Roadies can operate visibly within authorized boundaries. **Roadies** are AI collaborators; **Roadie** is the coordinating meta-AI; **Road** is the language.
 
-- **Local AI** — LLMs on Raspberry Pi, Hailo-8, and commodity hardware
-- **Mesh networking** — WireGuard VPN, NATS pub/sub, peer-to-peer
-- **Edge computing** — 52 TOPS of AI acceleration across a Pi fleet
-- **Self-hosted everything** — Git, DNS, storage, CI/CD, chat
-- **Zero cloud dependencies** — your data stays on your hardware
+RoadC is an implementation of Road. The Python interpreter and C compiler described above are implementation tools, not separate product definitions. Local operation, dependencies, supported syntax, and compatibility must be assessed for each implementation.
+
+**Ramps** are connections to external providers and services. Their use follows explicit permissions and the implementation’s actual data flow. The shared canon makes no blanket claim of zero dependencies, universal hardware support, or connected production infrastructure.
+
+Built by [BlackRoad OS, Inc.](https://github.com/BlackRoad-OS-Inc).
 
 <details>
 <summary>The BlackRoad ecosystem</summary>
