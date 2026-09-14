@@ -1,9 +1,21 @@
-# RoadC
+# Road — RoadC implementation
 
-> A programming language with Python-style indentation, built from scratch — a tree-walking interpreter in Python and a zero-dependency C99 compiler.
+<!-- BLACKROAD:CANON:START -->
+## The Road. Pave Tomorrow.
 
-[![BlackRoad OS](https://img.shields.io/badge/BlackRoad-OS-ff1d6c?style=flat-square)](https://blackroad.io)
-[![Org](https://img.shields.io/badge/org-blackboxprogramming-2979ff?style=flat-square)](https://github.com/blackboxprogramming)
+**We access it all at RoadOS.**  
+**We collaborate with Roadies.**  
+**We code in Road.**
+
+*Integration is Innovation.*
+
+Pick up your Roadies. Discover the BlackRoad together.
+
+[Product names, brand language, and implementation boundaries](BLACKROAD_CANON.md)
+<!-- BLACKROAD:CANON:END -->
+
+> A Road language implementation with Python-style indentation, built from scratch — a tree-walking interpreter in Python and a zero-dependency C99 compiler.
+
 
 [![CI](https://github.com/blackboxprogramming/roadc/actions/workflows/ci.yml/badge.svg)](https://github.com/blackboxprogramming/roadc/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-3776AB.svg)](https://python.org)
