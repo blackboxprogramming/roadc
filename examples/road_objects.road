@@ -35,6 +35,8 @@ fun stop(device):
     return "stopped"
 
 fun status(device):
+    if not has_permission(device, "status"):
+        return "permission denied"
     record(device, "status")
     if device.online:
         return "online"
