@@ -1,0 +1,14 @@
+# Road v0.1 action envelopes in the current RoadC interpreter.
+# A Route identifies the target. RoadOS owns execution authority.
+
+fun action(actor, verb, target, input):
+    return {"version": "road-action/0.1", "actor": actor, "action": verb, "target": target, "input": input}
+
+let octavia = "road://self/devices/octavia"
+let lucidia = "road://self/roadies/lucidia"
+
+let status_request = action("alexa", "status", octavia, {})
+let ask_request = action("alexa", "ask", lucidia, {"prompt": "summarize the current state"})
+
+print(status_request)
+print(ask_request)
