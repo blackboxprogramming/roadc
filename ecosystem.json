@@ -8,6 +8,9 @@
     "lexer.py",
     "parser.py",
     "interpreter.py",
-    "ast_nodes.py"
+    "ast_nodes.py",
+    "nats_bus.py",
+    "nats-component.json",
+    "NATS.md"
   ]
 }
