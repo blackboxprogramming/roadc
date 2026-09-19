@@ -109,6 +109,11 @@ let user = User{
 }
 ```
 
+This record syntax runs in the Python interpreter. Constructors check field
+names and required fields; annotations remain metadata, with no static or
+assignment-time type checking yet. See [record semantics](docs/RECORD_TYPES.md)
+for defaults, scope, and the C compiler boundary.
+
 ## Common Tasks
 
 ### Create a 3D Scene

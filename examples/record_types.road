@@ -1,0 +1,21 @@
+# Records describe local data; constructing one does not contact a device.
+type Device:
+    name: string
+    kind: string
+    online: bool = false
+    history: list[any] = []
+
+fun annotate(device, note):
+    device.history.append(note)
+
+let lucidia = Device{
+    name: "Lucidia",
+    kind: "Raspberry Pi",
+}
+let octavia = Device{name: "Octavia", kind: "Raspberry Pi"}
+
+annotate(lucidia, "declared locally")
+print(lucidia.name)
+print(lucidia.online)
+print(len(lucidia.history))
+print(len(octavia.history))
