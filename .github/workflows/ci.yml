@@ -29,6 +29,9 @@ jobs:
       - name: Run tests
         run: pytest tests/ -v --cov=. --cov-report=term-missing
 
+      - name: Check demo syntax without executing it
+        run: python roadc.py --check examples/demo.road --json
+
   build-compiler:
     name: Build C Compiler
     runs-on: ubuntu-latest

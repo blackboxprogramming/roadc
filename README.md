@@ -86,6 +86,12 @@ gcc -std=c99 -O2 -o roadc roadc.c
 # Run a .road file
 python3 roadc.py run examples/demo.road
 
+# Check syntax without executing the program
+python3 roadc.py --check examples/demo.road
+
+# Check multiple files and emit a machine-readable report
+python3 roadc.py check first.road second.road --json
+
 # Run tests (30+ tests)
 pytest tests/ -v
 
@@ -95,6 +101,34 @@ gcc -std=c99 -O2 -o roadc roadc.c
 # Start REPL
 python3 roadc.py repl
 ```
+
+### Syntax checking
+
+`check` and `--check` run the Python lexer and parser on UTF-8 files. They never
+execute source, construct an interpreter, prompt for input, or evaluate function
+calls. A successful check means the current parser accepts the syntax; it does
+not validate names, types, runtime behavior, or compatibility with the separate
+C compiler. Statements whose parser implementation is unfinished produce an
+error instead of hanging. The first diagnostic per file is reported, and checking
+continues with the remaining files in argument order.
+
+Text output sends successful results to stdout and errors to stderr. `--json`
+sends one JSON document to stdout, with no other output for source/read errors:
+
+```json
+{"schema_version": 1, "command": "check", "ok": true, "files": [{"path": "program.road", "ok": true, "diagnostics": []}]}
+```
+
+Each diagnostic has `code`, `stage`, `severity` (`error`), `message`, `line`, and
+`column`. Stages are `read`, `lex`, or `parse`; codes are `io_error`,
+`encoding_error`, `syntax_error`, or `nesting_limit`. Locations are one-based when
+the lexer/parser supplies them and `null` otherwise. The JSON structure and codes
+are the automation contract; message wording is informational and may change.
+Paths retain the spelling passed on the command line.
+
+Exit codes: **0** means all files passed, **1** means a file failed to read or
+parse, and **2** means invalid check-command arguments. Usage errors remain text
+on stderr even with `--json`. Use `--` before a filename beginning with `-`.
 
 ## Roadmap
 
