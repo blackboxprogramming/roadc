@@ -5,6 +5,7 @@ Usage:
     roadc.py run <file.road>     Run a RoadC source file
     roadc.py repl                Interactive REPL
     roadc.py parse <file.road>   Parse and dump AST
+    roadc.py check <file.road>   Check syntax without executing the program
     roadc.py version             Show version
 """
 
@@ -35,6 +36,12 @@ def parse_file(path):
     ast = Parser(tokens).parse_program()
     for stmt in ast.statements:
         print(stmt)
+
+def check_file(path):
+    """Parse a UTF-8 source file without constructing or running an interpreter."""
+    with open(path, encoding="utf-8") as source:
+        code = source.read()
+    return Parser(Lexer(code).tokenize()).parse_program()
 
 def repl():
     print(f"RoadC {VERSION} — type 'exit' to quit")
@@ -68,6 +75,14 @@ def main():
         run_file(sys.argv[2])
     elif cmd == 'parse' and len(sys.argv) > 2:
         parse_file(sys.argv[2])
+    elif cmd == 'check' and len(sys.argv) == 3:
+        path = sys.argv[2]
+        try:
+            check_file(path)
+        except (OSError, UnicodeError, SyntaxError, RecursionError) as exc:
+            print(f"{path}: {exc}", file=sys.stderr)
+            sys.exit(1)
+        print(f"Syntax OK: {path}")
     elif cmd == 'repl':
         repl()
     else:
