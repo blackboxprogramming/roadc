@@ -1,0 +1,6 @@
+# Exclusive integer bounds: prints 0, 1, 2, then total 3.
+var total = 0
+for i in 0..3:
+    print(i)
+    total = total + i
+print(total)
