@@ -299,9 +299,17 @@ class Lexer:
         start_column = self.column
         num_str = ''
 
-        while self.current_char() and (self.current_char().isdigit() or self.current_char() == '.'):
+        while self.current_char() and self.current_char().isdigit():
             num_str += self.current_char()
             self.advance()
+
+        # A decimal point belongs to the number; .. and ... belong to operators.
+        if self.current_char() == '.' and self.peek_char() != '.':
+            num_str += self.advance()
+            while self.current_char() and self.current_char().isdigit():
+                num_str += self.advance()
+            if self.current_char() == '.' and self.peek_char() != '.':
+                raise SyntaxError(f"Invalid number at {start_line}:{start_column}")
 
         # Check for scientific notation
         if self.current_char() in ['e', 'E']:
@@ -310,14 +318,19 @@ class Lexer:
             if self.current_char() in ['+', '-']:
                 num_str += self.current_char()
                 self.advance()
+            if self.current_char() is None or not self.current_char().isdigit():
+                raise SyntaxError(f"Invalid number at {start_line}:{start_column}")
             while self.current_char() and self.current_char().isdigit():
                 num_str += self.current_char()
                 self.advance()
 
-        if '.' in num_str or 'e' in num_str or 'E' in num_str:
-            return Token(TokenType.FLOAT, float(num_str), start_line, start_column)
-        else:
-            return Token(TokenType.INTEGER, int(num_str), start_line, start_column)
+        try:
+            if '.' in num_str or 'e' in num_str or 'E' in num_str:
+                return Token(TokenType.FLOAT, float(num_str), start_line, start_column)
+            else:
+                return Token(TokenType.INTEGER, int(num_str), start_line, start_column)
+        except ValueError:
+            raise SyntaxError(f"Invalid number at {start_line}:{start_column}") from None
 
     def tokenize_string(self) -> Token:
         """Tokenize string literal"""
