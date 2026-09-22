@@ -20,6 +20,20 @@ from interpreter import Interpreter
 
 VERSION = "0.1.0"
 
+class CheckParser(Parser):
+    """Reject unfinished statement parsers that do not consume their token."""
+
+    def parse_statement(self):
+        self.skip_newlines()
+        start = self.pos
+        token = self.current_token()
+        statement = super().parse_statement()
+        if self.pos == start:
+            raise SyntaxError(
+                f"Unsupported statement {token.type.name} at {token.line}:{token.column}"
+            )
+        return statement
+
 def run_code(code):
     tokens = Lexer(code).tokenize()
     ast = Parser(tokens).parse_program()
@@ -41,7 +55,7 @@ def check_file(path):
     """Parse a UTF-8 source file without constructing or running an interpreter."""
     with open(path, encoding="utf-8") as source:
         code = source.read()
-    return Parser(Lexer(code).tokenize()).parse_program()
+    return CheckParser(Lexer(code).tokenize()).parse_program()
 
 def repl():
     print(f"RoadC {VERSION} — type 'exit' to quit")
@@ -79,7 +93,7 @@ def main():
         path = sys.argv[2]
         try:
             check_file(path)
-        except (OSError, UnicodeError, SyntaxError, RecursionError) as exc:
+        except (OSError, UnicodeError, SyntaxError, ValueError, RecursionError) as exc:
             print(f"{path}: {exc}", file=sys.stderr)
             sys.exit(1)
         print(f"Syntax OK: {path}")
