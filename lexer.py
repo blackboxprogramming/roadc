@@ -267,7 +267,10 @@ class Lexer:
 
     def skip_whitespace(self, skip_newlines: bool = False):
         """Skip whitespace (but preserve newlines for indentation unless skip_newlines=True)"""
-        while self.current_char() in ' \t\r' or (skip_newlines and self.current_char() == '\n'):
+        while self.current_char() is not None and (
+            self.current_char() in ' \t\r'
+            or (skip_newlines and self.current_char() == '\n')
+        ):
             self.advance()
 
     def skip_comment(self):
@@ -329,6 +332,8 @@ class Lexer:
                 self.advance()
                 # Handle escape sequences
                 escape_char = self.current_char()
+                if escape_char is None:
+                    raise SyntaxError(f"Unterminated string at {start_line}:{start_column}")
                 if escape_char == 'n':
                     string_value += '\n'
                 elif escape_char == 't':
