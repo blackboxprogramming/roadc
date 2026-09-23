@@ -70,3 +70,17 @@ def test_output_before_runtime_error_is_preserved(tmp_path):
     assert result.returncode == 1
     assert result.stdout == "before\n"
     assert "division by zero" in result.stderr
+
+
+@pytest.mark.parametrize("program,error_class", [
+    ('let record = {}\nrecord.missing += 1\n', "KeyError"),
+    ('let value = 1 / 0\n', "ZeroDivisionError"),
+    ('missing()\n', "NameError"),
+])
+def test_concise_errors_preserve_exception_class_for_receipt_consumers(tmp_path, program, error_class):
+    source = tmp_path / "failure.road"
+    source.write_text(program, encoding="utf-8")
+    result = invoke("run", source)
+    assert result.returncode == 1
+    assert f"{source}: error: {error_class}: " in result.stderr
+    assert "Traceback" not in result.stderr
