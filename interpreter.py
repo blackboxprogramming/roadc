@@ -73,15 +73,37 @@ class Interpreter:
                 obj = self.eval_expr(stmt.target.object, env)
                 if isinstance(obj, dict):
                     obj[stmt.target.member] = value
+                else:
+                    raise TypeError("Member assignment requires a dictionary")
+            else:
+                raise RuntimeError(f"Invalid assignment target: {type(stmt.target).__name__}")
 
         elif isinstance(stmt, CompoundAssignment):
+            ops = {'+=': lambda a, b: a+b, '-=': lambda a, b: a-b,
+                   '*=': lambda a, b: a*b, '/=': lambda a, b: a/b}
+            if stmt.operator not in ops:
+                raise RuntimeError(f"Unsupported compound operator: {stmt.operator}")
+            # Resolve the target once, before the RHS. In particular, a call
+            # used as an object or index must not run again during the write.
             if isinstance(stmt.target, Identifier):
                 old = env.get(stmt.target.name)
-                rhs = self.eval_expr(stmt.value, env)
-                op = stmt.operator
-                ops = {'+=': lambda a, b: a+b, '-=': lambda a, b: a-b,
-                       '*=': lambda a, b: a*b, '/=': lambda a, b: a/b}
-                env.assign(stmt.target.name, ops[op](old, rhs))
+            elif isinstance(stmt.target, (IndexAccess, MemberAccess)):
+                obj = self.eval_expr(stmt.target.object, env)
+                if isinstance(stmt.target, MemberAccess):
+                    if not isinstance(obj, dict):
+                        raise TypeError("Member assignment requires a dictionary")
+                    index = stmt.target.member
+                else:
+                    index = self.eval_expr(stmt.target.index, env)
+                old = obj[index]
+            else:
+                raise RuntimeError(f"Invalid assignment target: {type(stmt.target).__name__}")
+            rhs = self.eval_expr(stmt.value, env)
+            value = ops[stmt.operator](old, rhs)
+            if isinstance(stmt.target, Identifier):
+                env.assign(stmt.target.name, value)
+            else:
+                obj[index] = value
 
         elif isinstance(stmt, ExpressionStatement):
             self.eval_expr(stmt.expression, env)
@@ -111,6 +133,10 @@ class Interpreter:
 
         elif isinstance(stmt, ForLoop):
             self.exec_for(stmt, env)
+        else:
+            raise RuntimeError(
+                f"Unsupported statement: {type(stmt).__name__} at {stmt.line}:{stmt.column}"
+            )
 
     def exec_if(self, stmt, env):
         if self.eval_expr(stmt.condition, env):
