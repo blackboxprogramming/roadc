@@ -18,7 +18,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from lexer import Lexer
+from lexer import Lexer, TokenType
 from parser import Parser
 from interpreter import Interpreter
 
@@ -113,23 +113,47 @@ def parse_file(path):
     for stmt in ast.statements:
         print(stmt)
 
+def read_repl_source():
+    """Collect a colon-headed block before parsing or executing any of it."""
+    line = input("road> ")
+    if line.strip() in ('exit', 'quit'):
+        return None
+    if not line.strip():
+        return ""
+    # Inspect actual tokens so a colon in a string or comment cannot start a
+    # block. Keep trailing comments and source indentation in the final input.
+    trivia = {TokenType.NEWLINE, TokenType.INDENT, TokenType.DEDENT, TokenType.EOF}
+    significant = [token for token in Lexer(line).tokenize() if token.type not in trivia]
+    if not significant or significant[-1].type != TokenType.COLON:
+        return line
+    lines = [line]
+    while True:
+        line = input("....> ")
+        if not line.strip():
+            return "\n".join(lines) + "\n"
+        lines.append(line)
+
+
 def repl():
-    print(f"RoadC {VERSION} — type 'exit' to quit")
+    print(f"RoadC {VERSION} — type 'exit' to quit; blank line submits a block")
     interp = Interpreter()
     while True:
         try:
-            line = input("road> ")
-        except (EOFError, KeyboardInterrupt):
-            print()
-            break
-        if line.strip() in ('exit', 'quit'):
-            break
-        if not line.strip():
-            continue
-        try:
-            tokens = Lexer(line).tokenize()
+            source = read_repl_source()
+            if source is None:
+                break
+            if not source:
+                continue
+            tokens = Lexer(source).tokenize()
             ast = Parser(tokens).parse_program()
             interp.run(ast)
+        except EOFError:
+            print()
+            break
+        except KeyboardInterrupt:
+            # Cancel unsubmitted input or interrupt execution while keeping
+            # the session. Effects of code already executed are not rolled back.
+            print()
         except Exception as e:
             print(f"Error: {e}")
 

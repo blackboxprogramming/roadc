@@ -104,6 +104,10 @@ gcc -std=c99 -O2 -o roadc roadc.c
 python3 roadc.py repl
 ```
 
+The Python REPL accepts indented functions, loops, conditionals, and record
+declarations. Submit a block with a blank line; Ctrl-C cancels input and keeps
+the session. See [interactive sessions](docs/REPL.md) for examples and limits.
+
 ### Syntax checking
 
 `check` and `--check` run the Python lexer and parser on UTF-8 files. They never
