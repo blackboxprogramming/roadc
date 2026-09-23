@@ -608,6 +608,14 @@ class Parser:
         """Parse primary expression (literals, identifiers, parenthesized)"""
         token = self.current_token()
 
+        # Type keywords also name builtin constructors in call position.
+        # Type annotations still use parse_type; bare keywords are not values.
+        if (self.match(TokenType.INT, TokenType.FLOAT_TYPE, TokenType.BOOL_TYPE,
+                       TokenType.LIST, TokenType.DICT, TokenType.SET)
+                and self.peek_token().type == TokenType.LPAREN):
+            self.advance()
+            return Identifier(token.value, line=token.line, column=token.column)
+
         # Integer literal
         if self.match(TokenType.INTEGER):
             self.advance()
