@@ -57,11 +57,12 @@ class RecordType:
 class BuiltinFunction:
     """A Road builtin value with the same arity through every call path."""
 
-    def __init__(self, name, implementation, minimum=1, maximum=1):
+    def __init__(self, name, implementation, minimum=1, maximum=1, *, value_type=None):
         self.name = name
         self.implementation = implementation
         self.minimum = minimum
         self.maximum = maximum
+        self.value_type = value_type
 
     def validate(self, supplied):
         if supplied < self.minimum or (self.maximum is not None and supplied > self.maximum):
@@ -412,7 +413,7 @@ class Interpreter:
             'ord': lambda args: ord(args[0]),
             'hex': lambda args: hex(args[0]),
             'bin': lambda args: bin(args[0]),
-            'isinstance': lambda args: isinstance(args[0], args[1]),
+            'isinstance': lambda args: isinstance(args[0], self.instance_types(args[1])),
         }
         builtins['map'] = lambda args: self.execute_collection('map', args)
         builtins['filter'] = lambda args: self.execute_collection('filter', args)
@@ -423,9 +424,23 @@ class Interpreter:
             'set': (0, 1), 'round': (1, 2), 'isinstance': (2, 2),
             'map': (2, None), 'filter': (2, 2),
         }
+        value_types = {'int': int, 'float': float, 'bool': bool, 'str': str,
+                       'list': list, 'dict': dict, 'set': set}
         for name, implementation in builtins.items():
             self.global_env.set(name, BuiltinFunction(
-                name, implementation, *arities.get(name, (1, 1))))
+                name, implementation, *arities.get(name, (1, 1)),
+                value_type=value_types.get(name)))
+
+    def instance_types(self, descriptor):
+        """Validate the full descriptor before asking the host about a value."""
+        if isinstance(descriptor, BuiltinFunction) and descriptor.value_type is not None:
+            return descriptor.value_type
+        if isinstance(descriptor, tuple):
+            return tuple(self.instance_types(item) for item in descriptor)
+        # Preserve embedding support for actual type objects supplied by a host.
+        if isinstance(descriptor, type):
+            return descriptor
+        raise TypeError('isinstance: expected a builtin type or tuple of builtin types')
 
     def validate_callable(self, func, supplied):
         if isinstance(func, BuiltinFunction):
