@@ -1,4 +1,4 @@
-"""Opt-in integration with an explicitly trusted RoadOS checkout."""
+"""Opt-in runtime receipt integration with an explicitly trusted RoadOS checkout."""
 
 import json
 import os
@@ -22,8 +22,18 @@ RUNTIME = Path(__file__).resolve().parents[1]
     ('let transform = map\nfun values():\n    print("MUST NOT RUN")\n'
      '    return [1]\ntransform(len, values(), values())\n',
      "failed", "", "len: expected"),
+    ('type Device:\n    permissions: set[string]\n'
+     'let device = Device{permissions: {"read",},}\n'
+     'print("read" in device.permissions,)\n'
+     'print(3 < 2 < missing())\nprint(6 & 3)\nprint(-2 ** 2)\n',
+     "completed", "True\nFalse\n2\n-4\n", ""),
+    ('let = 1\n', "failed", "", "Expected IDENTIFIER"),
+    ('async fun task():\n    print("MUST NOT RUN")\ntask()\n',
+     "failed", "", "Unsupported async function"),
+    ('print("before")\nlet result = 1 / 0\nprint("after")\n',
+     "failed", "before\n", "division by zero"),
 ])
-def test_builtin_values_produce_verified_workspace_receipts(tmp_path, source, status, output, error):
+def test_runtime_produces_verified_workspace_receipts(tmp_path, source, status, output, error):
     workspace = Path(os.environ["ROAD_TEST_ROADOS"]).resolve() / "workspace.py"
     (tmp_path / "main.road").write_text(source, encoding="utf-8")
     project = tmp_path / "road.json"

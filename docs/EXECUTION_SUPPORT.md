@@ -58,3 +58,23 @@ because some output exists. `parse` never executes the source. Imported Python
 APIs continue to raise their original exceptions, which preserves traceback
 access for developers. Structured syntax diagnostics remain available through
 `check --json`.
+
+## Verify RoadC through RoadOS receipts
+
+The RoadC suite also includes opt-in tests that launch the real RoadOS workspace
+runner against this interpreter, then verify its saved receipts:
+
+```bash
+ROAD_TEST_ROADOS=/absolute/path/to/RoadOS python3 -m pytest tests/test_builtin_workspace.py -q
+```
+
+Choose a trusted checkout: the test executes its `workspace.py`. Each case uses
+a temporary local project, an unbound Roadie catalog and temporary receipt
+storage. Cases cover callback values, records, membership, comparisons,
+arithmetic, syntax failures, unsupported async execution, and output retained
+before failure. They assert receipt completion/failure, captured output, no
+requested provider connection, and successful receipt verification.
+
+Without `ROAD_TEST_ROADOS`, these tests skip explicitly. They do not establish
+live device dispatch or broker delivery. Offline NATS launcher checks use the
+separate `ROAD_TEST_BUS_ROOT` setting documented in `NATS.md`.
