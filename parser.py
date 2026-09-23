@@ -368,6 +368,12 @@ class Parser:
         """Parse expression statement or assignment"""
         expr = self.parse_expression()
 
+        if self.match(TokenType.ASSIGN, TokenType.PLUS_ASSIGN, TokenType.MINUS_ASSIGN,
+                      TokenType.STAR_ASSIGN, TokenType.SLASH_ASSIGN):
+            if not isinstance(expr, (Identifier, IndexAccess, MemberAccess)):
+                token = self.current_token()
+                raise SyntaxError(f"Invalid assignment target at {token.line}:{token.column}")
+
         # Check for assignment
         if self.match(TokenType.ASSIGN):
             token = self.advance()
@@ -624,6 +630,8 @@ class Parser:
                 components.append(self.parse_expression())
                 if self.match(TokenType.COMMA):
                     self.advance()
+                else:
+                    break
             self.expect(TokenType.RPAREN)
             return VectorLiteral(dimension, components, line=vec_token.line, column=vec_token.column)
 
@@ -635,6 +643,8 @@ class Parser:
                 elements.append(self.parse_expression())
                 if self.match(TokenType.COMMA):
                     self.advance()
+                else:
+                    break
             self.expect(TokenType.RBRACKET)
             return ListLiteral(elements, line=token.line, column=token.column)
 

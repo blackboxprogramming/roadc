@@ -1,0 +1,13 @@
+{
+  "schema": "road-component/v1",
+  "component": "roadc",
+  "repository": "blackboxprogramming/roadc",
+  "role": "interpreter",
+  "entrypoints": [
+    "roadc.py",
+    "lexer.py",
+    "parser.py",
+    "interpreter.py",
+    "ast_nodes.py"
+  ]
+}

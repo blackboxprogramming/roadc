@@ -4,16 +4,7 @@
 # mistaken for an empty permission requirement.
 
 fun action(actor, verb, target, input, requires, source):
-    return {
-        "version": "road-action/0.1",
-        "actor": actor,
-        "action": verb,
-        "target": target,
-        "input": input,
-        "requires": requires,
-        "authority": {"mode": "self", "scope": "road://self"},
-        "provenance": {"source": source}
-    }
+    return {"version": "road-action/0.1", "actor": actor, "action": verb, "target": target, "input": input, "requires": requires, "authority": {"mode": "self", "scope": "road://self"}, "provenance": {"source": source}}
 
 let octavia = "road://self/devices/octavia"
 let lucidia = "road://self/roadies/lucidia"

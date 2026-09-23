@@ -3,6 +3,8 @@ RoadC Language - Tree-Walking Interpreter
 Executes AST nodes produced by the parser
 """
 
+from dataclasses import replace
+
 from ast_nodes import *
 
 
@@ -49,8 +51,15 @@ class Interpreter:
         self.global_env = Environment()
 
     def run(self, program):
-        for stmt in program.statements:
-            self.exec_statement(stmt, self.global_env)
+        try:
+            for stmt in program.statements:
+                self.exec_statement(stmt, self.global_env)
+        except ReturnSignal:
+            raise RuntimeError('return outside a function') from None
+        except BreakSignal:
+            raise RuntimeError('break outside a loop') from None
+        except ContinueSignal:
+            raise RuntimeError('continue outside a loop') from None
 
     def exec_statement(self, stmt, env):
         if isinstance(stmt, VariableDeclaration):
@@ -71,23 +80,44 @@ class Interpreter:
                 obj = self.eval_expr(stmt.target.object, env)
                 if isinstance(obj, dict):
                     obj[stmt.target.member] = value
+                else:
+                    raise TypeError('Member assignment requires a dictionary')
+            else:
+                raise TypeError('Invalid assignment target')
 
         elif isinstance(stmt, CompoundAssignment):
-            if isinstance(stmt.target, Identifier):
-                old = env.get(stmt.target.name)
-                rhs = self.eval_expr(stmt.value, env)
-                op = stmt.operator
-                ops = {'+=': lambda a, b: a+b, '-=': lambda a, b: a-b,
-                       '*=': lambda a, b: a*b, '/=': lambda a, b: a/b}
-                env.assign(stmt.target.name, ops[op](old, rhs))
+            target = stmt.target
+            if isinstance(target, Identifier):
+                old = env.get(target.name)
+            elif isinstance(target, (IndexAccess, MemberAccess)):
+                obj = self.eval_expr(target.object, env)
+                if isinstance(target, MemberAccess):
+                    if not isinstance(obj, dict):
+                        raise TypeError('Compound member assignment requires a dictionary')
+                    index = target.member
+                else:
+                    index = self.eval_expr(target.index, env)
+                old = obj[index]
+            else:
+                raise TypeError('Invalid compound assignment target')
+            rhs = self.eval_expr(stmt.value, env)
+            ops = {'+=': lambda a, b: a+b, '-=': lambda a, b: a-b,
+                   '*=': lambda a, b: a*b, '/=': lambda a, b: a/b}
+            value = ops[stmt.operator](old, rhs)
+            if isinstance(target, Identifier):
+                env.assign(target.name, value)
+            else:
+                obj[index] = value
 
         elif isinstance(stmt, ExpressionStatement):
             self.eval_expr(stmt.expression, env)
 
         elif isinstance(stmt, FunctionDefinition):
-            # Capture the defining environment for closures
-            stmt._closure_env = env
-            env.set(stmt.name, stmt)
+            # Each declaration evaluation creates a fresh closure. Keep the
+            # parsed definition reusable across factory calls and runtimes.
+            function = replace(stmt)
+            function._closure_env = env
+            env.set(stmt.name, function)
 
         elif isinstance(stmt, ReturnStatement):
             value = self.eval_expr(stmt.value, env) if stmt.value else None
@@ -107,6 +137,10 @@ class Interpreter:
 
         elif isinstance(stmt, ForLoop):
             self.exec_for(stmt, env)
+        else:
+            raise RuntimeError(
+                f"Unsupported statement: {type(stmt).__name__} at {stmt.line}:{stmt.column}"
+            )
 
     def exec_if(self, stmt, env):
         if self.eval_expr(stmt.condition, env):
@@ -226,13 +260,24 @@ class Interpreter:
             index = self.eval_expr(expr.index, env)
             return obj[index]
         if isinstance(expr, VectorLiteral):
+            if len(expr.components) != expr.dimension:
+                raise TypeError(
+                    f"vec{expr.dimension}: expected {expr.dimension} components, "
+                    f"got {len(expr.components)} at {expr.line}:{expr.column}"
+                )
             return tuple(self.eval_expr(c, env) for c in expr.components)
         raise RuntimeError(f"Unknown expression: {type(expr).__name__}")
 
     def eval_binary(self, expr, env):
         left = self.eval_expr(expr.left, env)
-        right = self.eval_expr(expr.right, env)
         op = expr.operator
+        # Logical guards evaluate the right operand only when needed, while
+        # preserving the selected operand value rather than coercing to bool.
+        if op == 'and':
+            return self.eval_expr(expr.right, env) if left else left
+        if op == 'or':
+            return left if left else self.eval_expr(expr.right, env)
+        right = self.eval_expr(expr.right, env)
         ops = {
             '+': lambda a, b: a+b, '-': lambda a, b: a-b,
             '*': lambda a, b: a*b, '/': lambda a, b: a/b,
@@ -240,7 +285,6 @@ class Interpreter:
             '==': lambda a, b: a==b, '!=': lambda a, b: a!=b,
             '<': lambda a, b: a<b, '>': lambda a, b: a>b,
             '<=': lambda a, b: a<=b, '>=': lambda a, b: a>=b,
-            'and': lambda a, b: a and b, 'or': lambda a, b: a or b,
             '&': lambda a, b: a & b, '|': lambda a, b: a | b,
             '^': lambda a, b: a ^ b,
         }
@@ -306,15 +350,52 @@ class Interpreter:
         if not isinstance(func, FunctionDefinition):
             raise RuntimeError(f"'{func}' is not callable")
 
+        # Validate before evaluating arguments: rejected calls must not run
+        # argument side effects or accidentally resolve an unbound parameter
+        # through its closure environment.
+        names = set()
+        optional = False
+        required = 0
+        variadic = False
+        for index, param in enumerate(func.parameters):
+            if param.name in names:
+                raise TypeError(f"{func.name}: duplicate parameter '{param.name}'")
+            names.add(param.name)
+            if param.is_variadic:
+                if index != len(func.parameters) - 1 or param.default_value is not None:
+                    raise TypeError(f"{func.name}: variadic parameter must be last and have no default")
+                variadic = True
+            elif param.default_value is not None:
+                optional = True
+            else:
+                if optional:
+                    raise TypeError(f"{func.name}: required parameter follows a default")
+                required += 1
+        supplied = len(expr.arguments)
+        maximum = len(func.parameters) - int(variadic)
+        if supplied < required or (not variadic and supplied > maximum):
+            expected = f"at least {required}" if variadic else f"{required}..{maximum}"
+            raise TypeError(f"{func.name}: expected {expected} arguments, got {supplied}")
+
         args = [self.eval_expr(a, env) for a in expr.arguments]
         # Use closure environment if available, otherwise global
         parent_env = getattr(func, '_closure_env', self.global_env)
         call_env = Environment(parent=parent_env)
-        for param, arg in zip(func.parameters, args):
-            call_env.set(param.name, arg)
+        for index, param in enumerate(func.parameters):
+            if param.is_variadic:
+                value = args[index:]
+            elif index < supplied:
+                value = args[index]
+            else:
+                value = self.eval_expr(param.default_value, call_env)
+            call_env.set(param.name, value)
 
         try:
             self.exec_block(func.body, call_env)
         except ReturnSignal as ret:
             return ret.value
+        except BreakSignal:
+            raise RuntimeError(f"{func.name}: break outside a loop in this function") from None
+        except ContinueSignal:
+            raise RuntimeError(f"{func.name}: continue outside a loop in this function") from None
         return None
