@@ -117,14 +117,14 @@ def test_invalid_utf8_is_a_read_diagnostic(tmp_path):
     assert diagnostic["column"] is None
 
 
-def test_malformed_number_without_location_is_a_diagnostic(source):
+def test_malformed_number_has_a_located_diagnostic(source):
     result = invoke("check", source("let x = 1.2.3\n"), "--json")
     assert result.returncode == 1
     diagnostic = json.loads(result.stdout)["files"][0]["diagnostics"][0]
     assert diagnostic["code"] == "syntax_error"
     assert diagnostic["stage"] == "lex"
-    assert diagnostic["line"] is None
-    assert diagnostic["column"] is None
+    assert diagnostic["line"] == 1
+    assert diagnostic["column"] == 9
 
 
 @pytest.mark.parametrize("program", [
@@ -185,10 +185,26 @@ def test_checked_in_examples_pass_batch_check():
     root = CLI.parent
     paths = [root / "examples" / name for name in (
         "demo.road", "road_objects.road", "route_actions.road", "record_types.road",
+        "ranges.road",
     )]
     result = invoke("check", *paths, "--json")
     assert result.returncode == 0
     assert json.loads(result.stdout)["files"] == [
         {"path": str(path), "ok": True, "diagnostics": []} for path in paths
     ]
+    assert result.stderr == ""
+
+
+@pytest.mark.parametrize("program", [" \t\r", "let values = 0..3 \t"])
+def test_check_accepts_trailing_whitespace(source, program):
+    result = invoke("check", source(program), "--json")
+    assert result.returncode == 0
+    assert json.loads(result.stdout)["ok"] is True
+    assert result.stderr == ""
+
+
+def test_checked_in_range_example_runs():
+    result = invoke("run", CLI.parent / "examples" / "ranges.road")
+    assert result.returncode == 0
+    assert result.stdout == "0\n1\n2\n3\n"
     assert result.stderr == ""

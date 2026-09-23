@@ -228,6 +228,8 @@ class Interpreter:
         if isinstance(expr, RangeExpression):
             start = self.eval_expr(expr.start, env)
             end = self.eval_expr(expr.end, env)
+            if type(start) is not int or type(end) is not int:
+                raise TypeError(f"Range bounds must be integers at {expr.line}:{expr.column}")
             return range(start, end)
         if isinstance(expr, MemberAccess):
             obj = self.eval_expr(expr.object, env)

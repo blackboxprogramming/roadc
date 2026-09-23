@@ -487,15 +487,28 @@ class Parser:
 
     def parse_comparison_expression(self) -> Expression:
         """Parse comparison expression"""
-        left = self.parse_additive_expression()
+        left = self.parse_range_expression()
 
         while self.match(TokenType.EQ, TokenType.NE, TokenType.LT,
                           TokenType.GT, TokenType.LE, TokenType.GE):
             op_token = self.advance()
-            right = self.parse_additive_expression()
+            right = self.parse_range_expression()
             left = BinaryOp(left, op_token.value, right, line=op_token.line, column=op_token.column)
 
         return left
+
+    def parse_range_expression(self) -> Expression:
+        """Parse an exclusive range; arithmetic binds within each bound."""
+        start = self.parse_additive_expression()
+        if not self.match(TokenType.DOUBLE_DOT):
+            return start
+
+        token = self.advance()
+        end = self.parse_additive_expression()
+        if self.match(TokenType.DOUBLE_DOT):
+            current = self.current_token()
+            raise SyntaxError(f"Chained ranges are not supported at {current.line}:{current.column}")
+        return RangeExpression(start, end, line=token.line, column=token.column)
 
     def parse_additive_expression(self) -> Expression:
         """Parse addition/subtraction expression"""
@@ -710,17 +723,6 @@ class Parser:
             # Just parenthesized expression
             self.expect(TokenType.RPAREN)
             return first_expr
-
-        # Range: 0..10
-        if self.match(TokenType.INTEGER):
-            start = IntegerLiteral(token.value, line=token.line, column=token.column)
-            self.advance()
-            if self.match(TokenType.DOUBLE_DOT):
-                self.advance()
-                end_token = self.expect(TokenType.INTEGER)
-                end = IntegerLiteral(end_token.value, line=end_token.line, column=end_token.column)
-                return RangeExpression(start, end, line=token.line, column=token.column)
-            return start
 
         # Identifier
         if self.match(TokenType.IDENTIFIER):
