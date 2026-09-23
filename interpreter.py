@@ -355,4 +355,8 @@ class Interpreter:
             self.exec_block(func.body, call_env)
         except ReturnSignal as ret:
             return ret.value
+        except BreakSignal:
+            raise RuntimeError(f"{func.name}: break outside a loop in this function") from None
+        except ContinueSignal:
+            raise RuntimeError(f"{func.name}: continue outside a loop in this function") from None
         return None
