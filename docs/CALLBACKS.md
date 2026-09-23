@@ -24,8 +24,10 @@ call scope, with its closure's live bindings.
 Builtin argument counts are checked before any arguments run. The callback
 expression is then evaluated, and Road/builtin signatures are checked before
 input expressions run, even for empty inputs. Inputs evaluate once, left to
-right; callbacks then run in iteration order. Existing callable member values
-such as `items.append` also work, with their host-language argument validation.
+right; callbacks then run in iteration order. Bound member values such as `items.append` use the same checks, including
+through aliases and with empty callback inputs. They retain the original receiver
+if its variable is later rebound. Arbitrary callables supplied by an embedding
+host retain host-language argument validation.
 
 Callback failures stop processing; earlier effects are not rolled back. A
 callback's `break` or `continue` cannot control a caller's loop. These are local
@@ -93,3 +95,17 @@ ROAD_TEST_ROADOS="$PWD/../RoadOS" python3 -m pytest tests/test_builtin_workspace
 
 The integration check launches the selected RoadOS code and this interpreter;
 it uses temporary projects and does not connect to a provider.
+
+## Bound member signatures
+
+| Methods | Accepted argument count |
+| --- | --- |
+| Dictionary `keys`, `values`, `items`; list `pop`; string `upper`, `lower`, `strip` | Zero |
+| List `append`; string `startswith`, `endswith`, `contains` | One |
+| String `split` | Zero or one |
+| String `replace` | Two |
+
+Arity is checked before argument expressions run. Value errors, such as popping
+an empty list, occur when the validated call executes. `split()` keeps its
+existing literal-space separator. List/string `length` remains a value, and
+dictionary method names retain precedence over same-named keys in dot access.
