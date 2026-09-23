@@ -30,3 +30,27 @@ such as `items.append` also work, with their host-language argument validation.
 Callback failures stop processing; earlier effects are not rolled back. A
 callback's `break` or `continue` cannot control a caller's loop. These are local
 Python-interpreter operations, not parallel execution or C compiler features.
+
+## Other builtin calls
+
+Ordinary builtin adapters also validate positional argument counts before
+evaluating argument expressions. Extra arguments are errors; they are never
+silently ignored. Road exposes a subset of Python's builtin signatures:
+
+| Builtins | Accepted argument count |
+| --- | --- |
+| `print`, `zip` | Zero or more |
+| `min`, `max` | One or more |
+| `range` | One to three |
+| `input`, `list`, `dict`, `set` | Zero or one |
+| `round` | One or two |
+| Other ordinary builtin adapters | One, except the two-argument `isinstance` adapter |
+
+In particular, optional Python parameters such as the base in `int`, the start
+in `sum`/`enumerate`, and keyword options are not exposed by these Road adapters.
+The type keywords `int`, `float`, `bool`, `list`, `dict`, and `set` can also be
+called as constructors, for example `list(0..3)` or `int("12")`. Their use in
+annotations is unchanged. This does not add first-class builtin names or make
+bare type keywords into values; the `type` declaration keyword remains reserved.
+Argument value
+validation happens after evaluation, and short-circuit guards still skip calls.

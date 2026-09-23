@@ -378,6 +378,19 @@ class Interpreter:
                 'isinstance': lambda args: isinstance(args[0], args[1]),
             }
             if name in builtins:
+                # Road's adapters expose a positional subset of host builtins.
+                # Reject unsupported arguments before evaluating any of them.
+                arities = {
+                    'print': (0, None), 'zip': (0, None),
+                    'min': (1, None), 'max': (1, None), 'range': (1, 3),
+                    'input': (0, 1), 'list': (0, 1), 'dict': (0, 1),
+                    'set': (0, 1), 'round': (1, 2), 'isinstance': (2, 2),
+                }
+                minimum, maximum = arities.get(name, (1, 1))
+                supplied = len(expr.arguments)
+                if supplied < minimum or (maximum is not None and supplied > maximum):
+                    expected = f'at least {minimum}' if maximum is None else f'{minimum}..{maximum}'
+                    raise TypeError(f'{name}: expected {expected} arguments, got {supplied}')
                 args = [self.eval_expr(a, env) for a in expr.arguments]
                 return builtins[name](args)
 
