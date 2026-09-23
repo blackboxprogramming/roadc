@@ -102,11 +102,11 @@ def run_code(code):
     Interpreter().run(ast)
 
 def run_file(path):
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         run_code(f.read())
 
 def parse_file(path):
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         code = f.read()
     tokens = Lexer(code).tokenize()
     ast = Parser(tokens).parse_program()
@@ -143,10 +143,17 @@ def main():
         sys.exit(check_files(sys.argv[2:]))
     elif cmd == 'version':
         print(f"RoadC {VERSION}")
-    elif cmd == 'run' and len(sys.argv) > 2:
-        run_file(sys.argv[2])
-    elif cmd == 'parse' and len(sys.argv) > 2:
-        parse_file(sys.argv[2])
+    elif cmd in ('run', 'parse'):
+        if len(sys.argv) != 3:
+            print(f"usage: roadc.py {cmd} FILE", file=sys.stderr)
+            sys.exit(2)
+        path = sys.argv[2]
+        try:
+            (run_file if cmd == 'run' else parse_file)(path)
+        except (OSError, UnicodeError, SyntaxError, ValueError, TypeError,
+                NameError, RuntimeError, ArithmeticError, LookupError, AttributeError) as error:
+            print(f"{path}: error: {error}", file=sys.stderr)
+            sys.exit(1)
     elif cmd == 'repl':
         repl()
     else:
