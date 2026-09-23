@@ -566,22 +566,24 @@ class Parser:
 
     def parse_multiplicative_expression(self) -> Expression:
         """Parse multiplication/division expression"""
-        left = self.parse_power_expression()
+        left = self.parse_unary_expression()
 
         while self.match(TokenType.STAR, TokenType.SLASH, TokenType.PERCENT):
             op_token = self.advance()
-            right = self.parse_power_expression()
+            right = self.parse_unary_expression()
             left = BinaryOp(left, op_token.value, right, line=op_token.line, column=op_token.column)
 
         return left
 
     def parse_power_expression(self) -> Expression:
         """Parse exponentiation (right-associative)"""
-        base = self.parse_unary_expression()
+        base = self.parse_postfix_expression()
 
         if self.match(TokenType.POWER):
             op_token = self.advance()
-            exponent = self.parse_power_expression()  # right-associative
+            # Signed exponents are allowed; recursion through unary/power keeps
+            # exponentiation right-associative without swallowing a base sign.
+            exponent = self.parse_unary_expression()
             return BinaryOp(base, op_token.value, exponent, line=op_token.line, column=op_token.column)
 
         return base
@@ -599,7 +601,7 @@ class Parser:
             operand = self.parse_unary_expression()
             return AwaitExpression(operand, line=op_token.line, column=op_token.column)
 
-        return self.parse_postfix_expression()
+        return self.parse_power_expression()
 
     def parse_postfix_expression(self) -> Expression:
         """Parse postfix expression (function call, member access, indexing)"""
