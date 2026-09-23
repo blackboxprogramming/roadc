@@ -130,6 +130,10 @@ class Interpreter:
 
         elif isinstance(stmt, ForLoop):
             self.exec_for(stmt, env)
+        else:
+            raise RuntimeError(
+                f"Unsupported statement: {type(stmt).__name__} at {stmt.line}:{stmt.column}"
+            )
 
     def exec_if(self, stmt, env):
         if self.eval_expr(stmt.condition, env):
