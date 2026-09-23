@@ -116,7 +116,6 @@ if true:
         interp = run(source)
         assert interp.global_env.get("x") == 42
 
-    @pytest.mark.skip(reason="Parser NEWLINE/DEDENT before else — known issue")
     def test_if_false_else(self):
         source = "let x = 0\nif false:\n    x = 1\nelse:\n    x = 42\n"
         interp = run(source)

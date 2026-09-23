@@ -76,6 +76,6 @@ authorization remains at the RoadOS boundary.
 ## Continuity
 
 This implements the next step identified by RoadC PR #4's object-model contract.
-The new work is based on that PR's `work/road-object-model` branch so its examples
-and permission tests remain in the history. The companion Road language
-contract and unrelated coordination work are unchanged.
+The object-model foundation and record implementation are integrated with
+`main`, including short-circuit evaluation and compound dictionary updates.
+Tests execute the checked-in record example as well as the object-model examples.

@@ -85,7 +85,7 @@ gcc -std=c99 -O2 -o roadc roadc.c
 
 ```bash
 # Run a .road file
-python roadc.py examples/fibonacci.road
+python3 roadc.py run examples/demo.road
 
 # Run tests (30+ tests)
 pytest tests/ -v
@@ -94,7 +94,7 @@ pytest tests/ -v
 gcc -std=c99 -O2 -o roadc roadc.c
 
 # Start REPL
-python roadc.py
+python3 roadc.py repl
 ```
 
 ## Roadmap
@@ -156,3 +156,36 @@ Built by [BlackRoad OS, Inc.](https://github.com/BlackRoad-OS-Inc).
 [search.blackroad.io](https://search.blackroad.io)
 
 *Remember the Road. Pave Tomorrow.*
+
+## RoadOS source integration
+
+Browse this clone's committed source in RoadOS Code and import selected files with commit/blob provenance. [Setup and language compatibility](docs/ROADOS_INTEGRATION.md).
+
+## Offline ecosystem check
+
+This repository declares its integration role and required files in
+[`ecosystem.json`](ecosystem.json). With `road`, `RoadOS`, `roadies`, `roadc`,
+`roadie`, and `BlackRoadOS-RoadOS` as sibling checkouts, run from their parent:
+
+```bash
+python3 RoadOS/ecosystem.py --root .
+```
+
+The checker reports all six components, hashes required files, and checks that
+their canon copies agree. It does not execute repository code, load models,
+connect providers, or establish deployment readiness. See the
+[ecosystem contract](https://github.com/blackboxprogramming/RoadOS/blob/main/ECOSYSTEM.md).
+
+### Compare local observations
+
+From the parent of the six sibling checkouts:
+
+```bash
+python3 RoadOS/ecosystem.py --root . --save baseline.json
+python3 RoadOS/ecosystem.py --root . --baseline baseline.json --save current.json
+```
+
+Snapshots preserve file hashes and canon agreement across Road, RoadOS, and
+Roadies. The comparison identifies changed, newly observed, or no longer observed
+files. Existing snapshot files are never overwritten. These checks do not run
+repository code or connect providers. See [comparison behavior and exit codes](https://github.com/blackboxprogramming/RoadOS/blob/main/ECOSYSTEM.md#save-and-compare-observations).

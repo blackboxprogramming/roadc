@@ -36,6 +36,49 @@ def test_documented_syntax_finishes_in_cli(tmp_path):
     assert result.stdout == "Lucidia\n"
 
 
+def test_checked_in_record_example_runs_in_cli():
+    root = Path(__file__).resolve().parents[1]
+    result = subprocess.run(
+        [sys.executable, str(root / "roadc.py"), "run",
+         str(root / "examples" / "record_types.road")],
+        capture_output=True, text=True, timeout=5,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "Lucidia\nFalse\n1\n0\n"
+
+
+def test_record_defaults_keep_short_circuit_evaluation():
+    env = run('''let events = []
+fun mark():
+    events.append("called")
+    return true
+type Record:
+    disabled: bool = false and mark()
+    enabled: bool = true or mark()
+let result = Record{}
+''')
+    assert env.get("result") == {"disabled": False, "enabled": True}
+    assert env.get("events") == []
+
+
+def test_record_compound_updates_evaluate_target_once():
+    env = run('''let events = []
+type Counter:
+    count: int = 1
+let counter = Counter{}
+fun target():
+    events.append("target")
+    return counter
+fun amount():
+    events.append("amount")
+    return 2
+target().count += amount()
+target()["count"] *= amount()
+''')
+    assert env.get("counter") == {"count": 6}
+    assert env.get("events") == ["target", "amount", "target", "amount"]
+
+
 def test_annotations_and_source_locations_survive_parsing():
     definition = parse(DEVICE).statements[0]
     assert isinstance(definition, TypeDefinition)
