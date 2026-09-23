@@ -1,6 +1,6 @@
 # Collection callbacks
 
-`map` and `filter` accept Road functions, including closures and aliases, and
+`map` and `filter` accept Road functions and builtins, including aliases, and
 return lists in input order:
 
 ```road
@@ -22,7 +22,7 @@ use the same rules as ordinary Road calls. Each callback invocation gets a fresh
 call scope, with its closure's live bindings.
 
 Builtin argument counts are checked before any arguments run. The callback
-expression is then evaluated, and Road function signatures are checked before
+expression is then evaluated, and Road/builtin signatures are checked before
 input expressions run, even for empty inputs. Inputs evaluate once, left to
 right; callbacks then run in iteration order. Existing callable member values
 such as `items.append` also work, with their host-language argument validation.
@@ -50,7 +50,44 @@ In particular, optional Python parameters such as the base in `int`, the start
 in `sum`/`enumerate`, and keyword options are not exposed by these Road adapters.
 The type keywords `int`, `float`, `bool`, `list`, `dict`, and `set` can also be
 called as constructors, for example `list(0..3)` or `int("12")`. Their use in
-annotations is unchanged. This does not add first-class builtin names or make
-bare type keywords into values; the `type` declaration keyword remains reserved.
-Argument value
-validation happens after evaluation, and short-circuit guards still skip calls.
+annotations is unchanged. In expression position these constructor keywords
+also represent builtin function values. The `type` declaration keyword remains
+reserved. Argument value validation happens after evaluation, and short-circuit
+guards still skip calls.
+
+## Builtin values and aliases
+
+```road
+let transform = map
+let numbers = transform(int, ["0", "3", "7"])
+let positive = filter(bool, numbers)
+let labels = map(str, positive)
+```
+
+Builtin values can be stored in collections, passed to Road functions, returned,
+or used as default parameters. Aliases retain the builtin's argument checks;
+aliasing `map` or `filter` also preserves callback validation before input
+expressions run. Invalid callback arity is rejected even for empty inputs.
+`map(map, [str, abs], [[1, 2], [-3, 4]])` produces
+`[["1", "2"], [3, 4]]`. Nested collection calls receive values already evaluated
+by their outer call; they cannot undo those earlier effects.
+
+Name lookup is now consistent between direct calls and function values: an
+ordinary local declaration or parameter such as `len` or `map` shadows that
+builtin. Previously direct calls bypassed such bindings. Save an alias before
+shadowing if the original builtin is needed. Constructor type keywords remain
+reserved in declaration/parameter names. Each interpreter owns its bindings.
+
+These are Road adapters, not Python type objects: the new constructor values do
+not add type-descriptor support to `isinstance`. Existing adapter signatures
+above, eager evaluation, and the C compiler's separate feature set are unchanged.
+
+Run `python3 roadc.py run examples/builtin_callbacks.road` for a local example.
+With a trusted sibling RoadOS checkout, verify success/failure receipts too:
+
+```bash
+ROAD_TEST_ROADOS="$PWD/../RoadOS" python3 -m pytest tests/test_builtin_workspace.py -q
+```
+
+The integration check launches the selected RoadOS code and this interpreter;
+it uses temporary projects and does not connect to a provider.

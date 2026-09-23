@@ -54,9 +54,29 @@ class RecordType:
         self.environment = environment
 
 
+class BuiltinFunction:
+    """A Road builtin value with the same arity through every call path."""
+
+    def __init__(self, name, implementation, minimum=1, maximum=1):
+        self.name = name
+        self.implementation = implementation
+        self.minimum = minimum
+        self.maximum = maximum
+
+    def validate(self, supplied):
+        if supplied < self.minimum or (self.maximum is not None and supplied > self.maximum):
+            expected = (f'at least {self.minimum}' if self.maximum is None
+                        else f'{self.minimum}..{self.maximum}')
+            raise TypeError(f'{self.name}: expected {expected} arguments, got {supplied}')
+
+    def __repr__(self):
+        return f'<builtin {self.name}>'
+
+
 class Interpreter:
     def __init__(self):
         self.global_env = Environment()
+        self.install_builtins()
 
     def run(self, program):
         try:
@@ -344,91 +364,88 @@ class Interpreter:
                 return match.group(0)
         return re.sub(r'\{(\w+)\}', replacer, s)
 
-    def eval_call(self, expr, env):
-        if isinstance(expr.function, Identifier):
-            name = expr.function.name
-            if name in {'map', 'filter'}:
-                return self.eval_collection_call(name, expr.arguments, env)
-            builtins = {
-                'print': lambda args: print(*args),
-                'len': lambda args: len(args[0]),
-                'range': lambda args: range(*args),
-                'str': lambda args: str(args[0]),
-                'int': lambda args: int(args[0]),
-                'float': lambda args: float(args[0]),
-                'bool': lambda args: bool(args[0]),
-                'type': lambda args: type(args[0]).__name__,
-                'abs': lambda args: abs(args[0]),
-                'min': lambda args: min(*args) if len(args) > 1 else min(args[0]),
-                'max': lambda args: max(*args) if len(args) > 1 else max(args[0]),
-                'sum': lambda args: sum(args[0]),
-                'sorted': lambda args: sorted(args[0]),
-                'reversed': lambda args: list(reversed(args[0])),
-                'enumerate': lambda args: list(enumerate(args[0])),
-                'zip': lambda args: list(zip(*args)),
-                'input': lambda args: input(args[0] if args else ''),
-                'list': lambda args: list(args[0]) if args else [],
-                'dict': lambda args: dict(args[0]) if args else {},
-                'set': lambda args: set(args[0]) if args else set(),
-                'round': lambda args: round(args[0], args[1] if len(args) > 1 else 0),
-                'chr': lambda args: chr(args[0]),
-                'ord': lambda args: ord(args[0]),
-                'hex': lambda args: hex(args[0]),
-                'bin': lambda args: bin(args[0]),
-                'isinstance': lambda args: isinstance(args[0], args[1]),
-            }
-            if name in builtins:
-                # Road's adapters expose a positional subset of host builtins.
-                # Reject unsupported arguments before evaluating any of them.
-                arities = {
-                    'print': (0, None), 'zip': (0, None),
-                    'min': (1, None), 'max': (1, None), 'range': (1, 3),
-                    'input': (0, 1), 'list': (0, 1), 'dict': (0, 1),
-                    'set': (0, 1), 'round': (1, 2), 'isinstance': (2, 2),
-                }
-                minimum, maximum = arities.get(name, (1, 1))
-                supplied = len(expr.arguments)
-                if supplied < minimum or (maximum is not None and supplied > maximum):
-                    expected = f'at least {minimum}' if maximum is None else f'{minimum}..{maximum}'
-                    raise TypeError(f'{name}: expected {expected} arguments, got {supplied}')
-                args = [self.eval_expr(a, env) for a in expr.arguments]
-                return builtins[name](args)
+    def install_builtins(self):
+        builtins = {
+            'print': lambda args: print(*args),
+            'len': lambda args: len(args[0]),
+            'range': lambda args: range(*args),
+            'str': lambda args: str(args[0]),
+            'int': lambda args: int(args[0]),
+            'float': lambda args: float(args[0]),
+            'bool': lambda args: bool(args[0]),
+            'type': lambda args: type(args[0]).__name__,
+            'abs': lambda args: abs(args[0]),
+            'min': lambda args: min(*args) if len(args) > 1 else min(args[0]),
+            'max': lambda args: max(*args) if len(args) > 1 else max(args[0]),
+            'sum': lambda args: sum(args[0]),
+            'sorted': lambda args: sorted(args[0]),
+            'reversed': lambda args: list(reversed(args[0])),
+            'enumerate': lambda args: list(enumerate(args[0])),
+            'zip': lambda args: list(zip(*args)),
+            'input': lambda args: input(args[0] if args else ''),
+            'list': lambda args: list(args[0]) if args else [],
+            'dict': lambda args: dict(args[0]) if args else {},
+            'set': lambda args: set(args[0]) if args else set(),
+            'round': lambda args: round(args[0], args[1] if len(args) > 1 else 0),
+            'chr': lambda args: chr(args[0]),
+            'ord': lambda args: ord(args[0]),
+            'hex': lambda args: hex(args[0]),
+            'bin': lambda args: bin(args[0]),
+            'isinstance': lambda args: isinstance(args[0], args[1]),
+        }
+        builtins['map'] = lambda args: self.execute_collection('map', args)
+        builtins['filter'] = lambda args: self.execute_collection('filter', args)
+        arities = {
+            'print': (0, None), 'zip': (0, None),
+            'min': (1, None), 'max': (1, None), 'range': (1, 3),
+            'input': (0, 1), 'list': (0, 1), 'dict': (0, 1),
+            'set': (0, 1), 'round': (1, 2), 'isinstance': (2, 2),
+            'map': (2, None), 'filter': (2, 2),
+        }
+        for name, implementation in builtins.items():
+            self.global_env.set(name, BuiltinFunction(
+                name, implementation, *arities.get(name, (1, 1))))
 
-        func = self.eval_expr(expr.function, env)
-
-        # Handle lambda-like callables from member access
-        if callable(func):
-            args = [self.eval_expr(a, env) for a in expr.arguments]
-            return func(*args)
-
-        if not isinstance(func, FunctionDefinition):
+    def validate_callable(self, func, supplied):
+        if isinstance(func, BuiltinFunction):
+            func.validate(supplied)
+        elif isinstance(func, FunctionDefinition):
+            self.validate_function_call(func, supplied)
+        elif not callable(func):
             raise RuntimeError(f"'{func}' is not callable")
 
-        # Validate before evaluating arguments: rejected calls must not run
-        # argument side effects or accidentally resolve an unbound parameter
-        # through its closure environment.
-        self.validate_function_call(func, len(expr.arguments))
-        args = [self.eval_expr(a, env) for a in expr.arguments]
-        return self.execute_function(func, args)
-
-    def eval_collection_call(self, name, arguments, env):
-        supplied = len(arguments)
-        if supplied < 2 or (name == 'filter' and supplied != 2):
-            expected = 'at least 2' if name == 'map' else '2'
-            raise TypeError(f"{name}: expected {expected} arguments, got {supplied}")
-        func = self.eval_expr(arguments[0], env)
-        callback_arity = supplied - 1 if name == 'map' else 1
+    def invoke_callable(self, func, args):
+        """Invoke a validated callable with already evaluated arguments."""
+        if isinstance(func, BuiltinFunction):
+            return func.implementation(args)
         if isinstance(func, FunctionDefinition):
-            self.validate_function_call(func, callback_arity)
-            callback = lambda *values: self.execute_function(func, list(values))
-        elif callable(func):
-            callback = func
+            return self.execute_function(func, args)
+        return func(*args)
+
+    def eval_call(self, expr, env):
+        func = self.eval_expr(expr.function, env)
+        self.validate_callable(func, len(expr.arguments))
+        # Collection calls additionally validate the callback before input
+        # expressions, including when map/filter were reached through aliases.
+        if isinstance(func, BuiltinFunction) and func.name in {'map', 'filter'}:
+            callback = self.eval_expr(expr.arguments[0], env)
+            self.collection_callback(func.name, callback, len(expr.arguments) - 1)
+            args = [callback] + [self.eval_expr(arg, env) for arg in expr.arguments[1:]]
         else:
+            args = [self.eval_expr(arg, env) for arg in expr.arguments]
+        return self.invoke_callable(func, args)
+
+    def collection_callback(self, name, func, input_count):
+        if not isinstance(func, (BuiltinFunction, FunctionDefinition)) and not callable(func):
             raise TypeError(f"{name}: first argument must be callable")
-        inputs = [self.eval_expr(arg, env) for arg in arguments[1:]]
+        self.validate_callable(func, input_count if name == 'map' else 1)
+        return lambda *values: self.invoke_callable(func, list(values))
+
+    def execute_collection(self, name, args):
+        callback = self.collection_callback(name, args[0], len(args) - 1)
         if name == 'map':
-            return list(map(callback, *inputs))
-        return list(filter(callback, inputs[0]))
+            return list(map(callback, *args[1:]))
+        return list(filter(callback, args[1]))
 
     def validate_function_call(self, func, supplied):
         """Validate a Road function before evaluating supplied argument expressions."""

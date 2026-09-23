@@ -1,0 +1,8 @@
+# Local transformation of recorded task data; no provider or fleet connection.
+let recorded = ["0", "3", "0", "7"]
+let counts = map(int, recorded)
+let completed = filter(bool, counts)
+let transform = map
+let labels = transform(str, completed)
+print(labels)
+print(sum(completed))
