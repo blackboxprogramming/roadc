@@ -260,6 +260,11 @@ class Interpreter:
             index = self.eval_expr(expr.index, env)
             return obj[index]
         if isinstance(expr, VectorLiteral):
+            if len(expr.components) != expr.dimension:
+                raise TypeError(
+                    f"vec{expr.dimension}: expected {expr.dimension} components, "
+                    f"got {len(expr.components)} at {expr.line}:{expr.column}"
+                )
             return tuple(self.eval_expr(c, env) for c in expr.components)
         raise RuntimeError(f"Unknown expression: {type(expr).__name__}")
 
