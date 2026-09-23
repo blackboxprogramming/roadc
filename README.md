@@ -26,7 +26,7 @@ Pick up your Roadies. Discover the BlackRoad together.
 
 The Python interpreter supports:
 
-- **Variables**: `let`, `var`, `const` with optional type annotations
+- **Variables**: `let`, `var`, `const` with optional type annotations. [Binding semantics](docs/VARIABLES.md).
 - **Functions**: `fun` keyword, parameters, `return`, recursion, closures
 - **Control flow**: `if`/`elif`/`else`, `while`, `for`/`in`, `break`, `continue`
 - **Types**: integers, floats, strings (with `{var}` interpolation), booleans, colors (`#FF1D6C`)
