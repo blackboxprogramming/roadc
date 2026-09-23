@@ -121,6 +121,10 @@ class Interpreter:
             self.eval_expr(stmt.expression, env)
 
         elif isinstance(stmt, FunctionDefinition):
+            if stmt.is_async:
+                raise RuntimeError(
+                    f"Unsupported async function {stmt.name} at {stmt.line}:{stmt.column}"
+                )
             # Each declaration evaluation creates a fresh closure. Keep the
             # parsed definition reusable across factory calls and runtimes.
             function = replace(stmt)
@@ -190,6 +194,8 @@ class Interpreter:
             self.exec_statement(stmt, env)
 
     def eval_expr(self, expr, env):
+        if isinstance(expr, AwaitExpression):
+            raise RuntimeError(f"Unsupported await expression at {expr.line}:{expr.column}")
         if isinstance(expr, IntegerLiteral):
             return expr.value
         if isinstance(expr, FloatLiteral):
