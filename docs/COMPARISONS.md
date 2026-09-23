@@ -21,3 +21,24 @@ Single comparisons keep their existing AST representation and behavior.
 This corrects the prior left-associative behavior of unparenthesized chains;
 code relying on that behavior must add parentheses. C compiler behavior is
 unchanged.
+
+## Membership
+
+`in` and `not in` are comparison operators for local collections:
+
+```road
+let present = "read" in {"read", "write"}
+let absent = 3 not in [1, 2]
+let has_name = "name" in {"name": "Lucidia"}
+```
+
+All three results are true. Dictionaries test keys, strings test substrings,
+and lists, tuples, sets and ranges use their normal Python-interpreter membership
+semantics. An incompatible right operand raises a type error.
+
+Membership shares comparison precedence and supports chains: `1 < value in
+allowed` checks both pairs and evaluates `value` only once. A false first pair
+skips later operands. Logical guards also short-circuit membership expressions.
+The contextual `in` marker in `for` loops is unchanged. Membership checks are
+local data operations; a permission-like string in a set does not grant runtime
+authority.

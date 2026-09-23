@@ -235,6 +235,7 @@ class Interpreter:
                 '==': lambda a, b: a == b, '!=': lambda a, b: a != b,
                 '<': lambda a, b: a < b, '>': lambda a, b: a > b,
                 '<=': lambda a, b: a <= b, '>=': lambda a, b: a >= b,
+                'in': lambda a, b: a in b, 'not in': lambda a, b: a not in b,
             }
             left = self.eval_expr(expr.operands[0], env)
             for operator, operand in zip(expr.operators, expr.operands[1:]):
@@ -365,6 +366,7 @@ class Interpreter:
             '==': lambda a, b: a==b, '!=': lambda a, b: a!=b,
             '<': lambda a, b: a<b, '>': lambda a, b: a>b,
             '<=': lambda a, b: a<=b, '>=': lambda a, b: a>=b,
+            'in': lambda a, b: a in b, 'not in': lambda a, b: a not in b,
             '&': lambda a, b: a & b, '|': lambda a, b: a | b,
             '^': lambda a, b: a ^ b,
         }
