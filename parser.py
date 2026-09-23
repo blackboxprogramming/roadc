@@ -272,6 +272,9 @@ class Parser:
                 break
             self.advance()
 
+            if self.match(TokenType.RPAREN):
+                break
+
         return parameters
 
     def parse_block(self) -> List[Statement]:
@@ -642,6 +645,9 @@ class Parser:
                 break
             self.advance()
 
+            if self.match(TokenType.RPAREN):
+                break
+
         return arguments
 
     def parse_primary_expression(self) -> Expression:
@@ -728,6 +734,8 @@ class Parser:
 
                 while self.match(TokenType.COMMA):
                     self.advance()
+                    if self.match(TokenType.RBRACE):
+                        break
                     key = self.parse_expression()
                     self.expect(TokenType.COLON)
                     value = self.parse_expression()
@@ -741,6 +749,8 @@ class Parser:
                 elements = [first_expr]
                 while self.match(TokenType.COMMA):
                     self.advance()
+                    if self.match(TokenType.RBRACE):
+                        break
                     elements.append(self.parse_expression())
 
                 self.expect(TokenType.RBRACE)

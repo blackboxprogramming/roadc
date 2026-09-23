@@ -23,3 +23,9 @@ syntax in `run`, `parse`, the REPL, and the public Python parsing API.
 
 This consolidates the overlapping work in PRs #8 and #9 into the batch-capable
 interface from #8.
+
+Comma-separated lists, tuples, dictionaries, sets, records, function arguments,
+and function parameters may end with one trailing comma. Multiline forms use
+the same rule. A trailing comma does not create an extra argument or element;
+leading/doubled commas and omitted values remain syntax errors. `{}` remains
+an empty dictionary; use `set()` for an empty set.
