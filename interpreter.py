@@ -231,8 +231,14 @@ class Interpreter:
 
     def eval_binary(self, expr, env):
         left = self.eval_expr(expr.left, env)
-        right = self.eval_expr(expr.right, env)
         op = expr.operator
+        # Logical guards evaluate the right operand only when needed, while
+        # preserving the selected operand value rather than coercing to bool.
+        if op == 'and':
+            return self.eval_expr(expr.right, env) if left else left
+        if op == 'or':
+            return left if left else self.eval_expr(expr.right, env)
+        right = self.eval_expr(expr.right, env)
         ops = {
             '+': lambda a, b: a+b, '-': lambda a, b: a-b,
             '*': lambda a, b: a*b, '/': lambda a, b: a/b,
@@ -240,7 +246,6 @@ class Interpreter:
             '==': lambda a, b: a==b, '!=': lambda a, b: a!=b,
             '<': lambda a, b: a<b, '>': lambda a, b: a>b,
             '<=': lambda a, b: a<=b, '>=': lambda a, b: a>=b,
-            'and': lambda a, b: a and b, 'or': lambda a, b: a or b,
             '&': lambda a, b: a & b, '|': lambda a, b: a | b,
             '^': lambda a, b: a ^ b,
         }
