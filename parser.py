@@ -499,16 +499,40 @@ class Parser:
 
     def parse_range_expression(self) -> Expression:
         """Parse an exclusive range; arithmetic binds within each bound."""
-        start = self.parse_additive_expression()
+        start = self.parse_bitwise_or_expression()
         if not self.match(TokenType.DOUBLE_DOT):
             return start
 
         token = self.advance()
-        end = self.parse_additive_expression()
+        end = self.parse_bitwise_or_expression()
         if self.match(TokenType.DOUBLE_DOT):
             current = self.current_token()
             raise SyntaxError(f"Chained ranges are not supported at {current.line}:{current.column}")
         return RangeExpression(start, end, line=token.line, column=token.column)
+
+    def parse_bitwise_or_expression(self) -> Expression:
+        left = self.parse_bitwise_xor_expression()
+        while self.match(TokenType.PIPE):
+            token = self.advance()
+            right = self.parse_bitwise_xor_expression()
+            left = BinaryOp(left, token.value, right, line=token.line, column=token.column)
+        return left
+
+    def parse_bitwise_xor_expression(self) -> Expression:
+        left = self.parse_bitwise_and_expression()
+        while self.match(TokenType.CARET):
+            token = self.advance()
+            right = self.parse_bitwise_and_expression()
+            left = BinaryOp(left, token.value, right, line=token.line, column=token.column)
+        return left
+
+    def parse_bitwise_and_expression(self) -> Expression:
+        left = self.parse_additive_expression()
+        while self.match(TokenType.AMPERSAND):
+            token = self.advance()
+            right = self.parse_additive_expression()
+            left = BinaryOp(left, token.value, right, line=token.line, column=token.column)
+        return left
 
     def parse_additive_expression(self) -> Expression:
         """Parse addition/subtraction expression"""
@@ -545,7 +569,7 @@ class Parser:
 
     def parse_unary_expression(self) -> Expression:
         """Parse unary expression"""
-        if self.match(TokenType.MINUS, TokenType.PLUS):
+        if self.match(TokenType.MINUS, TokenType.PLUS, TokenType.TILDE):
             op_token = self.advance()
             operand = self.parse_unary_expression()
             return UnaryOp(op_token.value, operand, line=op_token.line, column=op_token.column)
