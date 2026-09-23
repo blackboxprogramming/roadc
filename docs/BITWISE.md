@@ -15,7 +15,9 @@ local data; permission-like strings do not grant execution authority.
 
 Precedence, from stronger to weaker, is arithmetic, `&`, `^`, `|`, range `..`,
 comparisons, `not`, `and`, then `or`. Unary `~` shares the existing unary `+`/`-`
-precedence. Parentheses override grouping. For example, `1 | 2 & 4` is `1`,
+precedence, below a power on its right (`~2 ** 3` is `-9`). See
+[arithmetic precedence](ARITHMETIC.md). Parentheses override grouping.
+For example, `1 | 2 & 4` is `1`,
 and `1 | 2..4 | 1` constructs the range from `3` up to, but excluding, `5`.
 
 Binary bitwise operators evaluate both operands once, left to right. Logical
