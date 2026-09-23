@@ -130,6 +130,8 @@ def test_malformed_number_without_location_is_a_diagnostic(source):
 @pytest.mark.parametrize("program", [
     "match value:\n    let x = 1\n",
     "fun task():\n    spawn worker()\n",
+    "export match value:\n    let x = 1\n",
+    "export spawn worker()\n",
 ])
 def test_unimplemented_statements_fail_promptly(source, program):
     result = invoke("check", source(program), "--json")
@@ -165,3 +167,28 @@ def test_existing_run_and_parse_commands_still_work(source):
     assert parsed.returncode == 0
     assert "ExpressionStatement" in parsed.stdout
     assert invoke("version").stdout.startswith("RoadC ")
+
+
+@pytest.mark.parametrize("prefix", ["", "export "])
+def test_check_accepts_records_without_evaluating_defaults(source, prefix):
+    path = source(prefix + 'type Device:\n    name: string = input("PROMPT")\n'
+                  'let device = Device{}\n')
+    result = invoke("check", path, "--json")
+    assert result.returncode == 0
+    assert json.loads(result.stdout)["files"] == [
+        {"path": str(path), "ok": True, "diagnostics": []},
+    ]
+    assert result.stderr == ""
+
+
+def test_checked_in_examples_pass_batch_check():
+    root = CLI.parent
+    paths = [root / "examples" / name for name in (
+        "demo.road", "road_objects.road", "route_actions.road", "record_types.road",
+    )]
+    result = invoke("check", *paths, "--json")
+    assert result.returncode == 0
+    assert json.loads(result.stdout)["files"] == [
+        {"path": str(path), "ok": True, "diagnostics": []} for path in paths
+    ]
+    assert result.stderr == ""

@@ -34,6 +34,7 @@ The Python interpreter supports:
 - **Operators**: arithmetic, comparison, logical, bitwise, compound assignment
 - **Builtins**: `print`, `len`, `range`, `str`, `int`, `abs`, `min`, `max`, `sorted`, `input`, and more
 - **Member access**: string/list/dict methods (`.upper()`, `.append()`, `.keys()`)
+- **Records**: `type Device:` declarations and `Device{name: "Lucidia"}` construction, with required fields and per-construction defaults; values remain ordinary dictionaries. [Record semantics and limits](docs/RECORD_TYPES.md).
 
 ```road
 fun fibonacci(n):

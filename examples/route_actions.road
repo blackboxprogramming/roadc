@@ -1,0 +1,16 @@
+# Road v0.1 action envelopes in the current RoadC interpreter.
+# A Route identifies the target. RoadOS owns execution authority.
+# Boundary metadata is explicit so missing authorization context cannot be
+# mistaken for an empty permission requirement.
+
+fun action(actor, verb, target, input, requires, source):
+    return {"version": "road-action/0.1", "actor": actor, "action": verb, "target": target, "input": input, "requires": requires, "authority": {"mode": "self", "scope": "road://self"}, "provenance": {"source": source}}
+
+let octavia = "road://self/devices/octavia"
+let lucidia = "road://self/roadies/lucidia"
+
+let status_request = action("alexa", "status", octavia, {}, ["status"], "examples/route_actions.road")
+let ask_request = action("alexa", "ask", lucidia, {"prompt": "summarize the current state"}, ["ask"], "examples/route_actions.road")
+
+print(status_request)
+print(ask_request)
