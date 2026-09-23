@@ -25,21 +25,6 @@ from interpreter import Interpreter
 VERSION = "0.1.0"
 
 
-class CheckParser(Parser):
-    """Reject unfinished parser branches instead of looping on the same token."""
-
-    def parse_statement(self):
-        self.skip_newlines()
-        start = self.pos
-        token = self.current_token()
-        statement = super().parse_statement()
-        if self.pos == start:
-            raise SyntaxError(
-                f"Unsupported statement {token.type.name} at {token.line}:{token.column}"
-            )
-        return statement
-
-
 def check_file(path):
     """Return a syntax report. Never construct or run an Interpreter."""
     stage = "read"
@@ -50,7 +35,7 @@ def check_file(path):
         stage = "lex"
         tokens = Lexer(code).tokenize()
         stage = "parse"
-        CheckParser(tokens).parse_program()
+        Parser(tokens).parse_program()
     except (OSError, UnicodeError, SyntaxError, ValueError, RecursionError) as error:
         line = column = None
         message = str(error)

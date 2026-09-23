@@ -848,14 +848,14 @@ class Parser:
 
     # Stubs for other complex features
     def parse_match_statement(self) -> MatchStatement:
-        """Parse match statement (stub)"""
-        # TODO: Implement match statement parsing
-        pass
+        """Reject match syntax until parsing and execution are implemented."""
+        token = self.current_token()
+        raise SyntaxError(f"Unsupported statement MATCH at {token.line}:{token.column}")
 
     def parse_spawn_statement(self) -> SpawnStatement:
-        """Parse spawn statement (stub)"""
-        # TODO: Implement spawn statement parsing
-        pass
+        """Reject spawn syntax until parsing and execution are implemented."""
+        token = self.current_token()
+        raise SyntaxError(f"Unsupported statement SPAWN at {token.line}:{token.column}")
 
 
 def parse(source: str, filename: str = "<stdin>") -> Program:
