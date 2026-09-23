@@ -204,6 +204,19 @@ class Interpreter:
             return env.get(expr.name)
         if isinstance(expr, BinaryOp):
             return self.eval_binary(expr, env)
+        if isinstance(expr, ComparisonChain):
+            comparisons = {
+                '==': lambda a, b: a == b, '!=': lambda a, b: a != b,
+                '<': lambda a, b: a < b, '>': lambda a, b: a > b,
+                '<=': lambda a, b: a <= b, '>=': lambda a, b: a >= b,
+            }
+            left = self.eval_expr(expr.operands[0], env)
+            for operator, operand in zip(expr.operators, expr.operands[1:]):
+                right = self.eval_expr(operand, env)
+                if not comparisons[operator](left, right):
+                    return False
+                left = right
+            return True
         if isinstance(expr, UnaryOp):
             operand = self.eval_expr(expr.operand, env)
             if expr.operator == '-':

@@ -488,14 +488,20 @@ class Parser:
     def parse_comparison_expression(self) -> Expression:
         """Parse comparison expression"""
         left = self.parse_range_expression()
-
+        operands = [left]
+        operators = []
         while self.match(TokenType.EQ, TokenType.NE, TokenType.LT,
                           TokenType.GT, TokenType.LE, TokenType.GE):
             op_token = self.advance()
-            right = self.parse_range_expression()
-            left = BinaryOp(left, op_token.value, right, line=op_token.line, column=op_token.column)
-
-        return left
+            operators.append(op_token)
+            operands.append(self.parse_range_expression())
+        if not operators:
+            return left
+        first = operators[0]
+        if len(operators) == 1:
+            return BinaryOp(left, first.value, operands[1], line=first.line, column=first.column)
+        return ComparisonChain(operands, [op.value for op in operators],
+                               line=first.line, column=first.column)
 
     def parse_range_expression(self) -> Expression:
         """Parse an exclusive range; arithmetic binds within each bound."""

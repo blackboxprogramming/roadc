@@ -109,6 +109,12 @@ class VectorLiteral(Expression):
     components: List[Expression]
 
 @dataclass
+class ComparisonChain(Expression):
+    """Pairwise comparisons with shared middle operands: a < b <= c."""
+    operands: List[Expression]
+    operators: List[str]
+
+@dataclass
 class ListLiteral(Expression):
     """List literal: [1, 2, 3]"""
     elements: List[Expression]
