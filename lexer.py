@@ -240,6 +240,7 @@ class Lexer:
         self.column = 1
         self.tokens: List[Token] = []
         self.indent_stack = [0]  # Track indentation levels
+        self.delimiter_stack = []  # Grouped expressions do not open blocks
 
     def current_char(self) -> Optional[str]:
         """Get current character without advancing"""
@@ -435,6 +436,11 @@ class Lexer:
                         indent_level += 4  # Tab = 4 spaces
                     self.advance()
 
+                # Newlines inside (), [] and {} continue the same expression.
+                # Keep the surrounding statement's block indentation intact.
+                if self.delimiter_stack:
+                    continue
+
                 # Skip blank lines and comment-only lines
                 if self.current_char() == '\n' or self.current_char() == '#':
                     continue
@@ -593,12 +599,25 @@ class Lexer:
             }
 
             if char in single_char_tokens:
+                if char in '([{':
+                    self.delimiter_stack.append((char, line, col))
+                elif char in ')]}':
+                    if not self.delimiter_stack:
+                        raise SyntaxError(f"Unexpected closing delimiter '{char}' at {line}:{col}")
+                    opening, _, _ = self.delimiter_stack[-1]
+                    if opening != {')': '(', ']': '[', '}': '{'}[char]:
+                        raise SyntaxError(f"Mismatched delimiter '{char}' at {line}:{col}")
+                    self.delimiter_stack.pop()
                 self.advance()
                 self.tokens.append(Token(single_char_tokens[char], char, line, col))
                 continue
 
             # Unknown character
             raise SyntaxError(f"Unexpected character '{char}' at {line}:{col}")
+
+        if self.delimiter_stack:
+            opening, line, col = self.delimiter_stack[-1]
+            raise SyntaxError(f"Unclosed delimiter '{opening}' at {line}:{col}")
 
         # Handle remaining dedents
         while len(self.indent_stack) > 1:

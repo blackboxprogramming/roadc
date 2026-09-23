@@ -1,0 +1,64 @@
+# Road objects from the primitives RoadC already executes today.
+#
+# The point is not to copy Python classes. A Road object can be a record
+# (dict) with identity, capabilities, state, history, and behavior supplied
+# by verbs. This keeps the language English-first while the runtime remains
+# small and inspectable.
+
+fun make_device(name, kind, permissions):
+    let device = {"name": name, "kind": kind, "online": false, "permissions": permissions, "identity": (name, kind), "history": []}
+    return device
+
+fun has_permission(device, action):
+    for permission in device.permissions:
+        if permission == action:
+            return true
+    return false
+
+fun record(device, action):
+    let event = {"device": device.name, "action": action, "online": device.online}
+    device.history.append(event)
+    return event
+
+fun start(device):
+    if not has_permission(device, "start"):
+        return "permission denied"
+    device.online = true
+    record(device, "start")
+    return "started"
+
+fun stop(device):
+    if not has_permission(device, "stop"):
+        return "permission denied"
+    device.online = false
+    record(device, "stop")
+    return "stopped"
+
+fun status(device):
+    if not has_permission(device, "status"):
+        return "permission denied"
+    record(device, "status")
+    if device.online:
+        return "online"
+    return "offline"
+
+# Functions are values, so a dict can be an action router.
+let actions = {"start": start, "stop": stop, "status": status}
+
+fun dispatch(action, device):
+    let handler = actions[action]
+    return handler(device)
+
+# A list is the fleet, each member is a dict-backed Road object.
+let lucidia = make_device("Lucidia", "Raspberry Pi", {"start", "stop", "status"})
+let olympia = make_device("Olympia", "Jetson", {"start", "stop", "status"})
+let alexandria = make_device("Alexandria", "Mac", {"status"})
+let fleet = [lucidia, olympia, alexandria]
+
+print("ROAD OBJECTS")
+print("fleet:", len(fleet))
+print("lucidia identity:", lucidia.identity)
+print("start lucidia:", dispatch("start", lucidia))
+print("lucidia status:", dispatch("status", lucidia))
+print("start alexandria:", dispatch("start", alexandria))
+print("lucidia history:", lucidia.history)
