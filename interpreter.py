@@ -3,6 +3,8 @@ RoadC Language - Tree-Walking Interpreter
 Executes AST nodes produced by the parser
 """
 
+from dataclasses import replace
+
 from ast_nodes import *
 
 
@@ -85,9 +87,11 @@ class Interpreter:
             self.eval_expr(stmt.expression, env)
 
         elif isinstance(stmt, FunctionDefinition):
-            # Capture the defining environment for closures
-            stmt._closure_env = env
-            env.set(stmt.name, stmt)
+            # Each declaration evaluation creates a fresh closure. Keep the
+            # parsed definition reusable across factory calls and runtimes.
+            function = replace(stmt)
+            function._closure_env = env
+            env.set(stmt.name, function)
 
         elif isinstance(stmt, ReturnStatement):
             value = self.eval_expr(stmt.value, env) if stmt.value else None
