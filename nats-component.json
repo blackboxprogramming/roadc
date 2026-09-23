@@ -1,0 +1,9 @@
+{
+  "schema": "road-nats-component/v1",
+  "component": "roadc",
+  "repository": "blackboxprogramming/roadc",
+  "transport": "nats-jetstream",
+  "adapter": "nats_bus.py",
+  "contract": "road-nats-event/v1",
+  "execution": "not-requested"
+}

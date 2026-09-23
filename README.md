@@ -223,3 +223,9 @@ Snapshots preserve file hashes and canon agreement across Road, RoadOS, and
 Roadies. The comparison identifies changed, newly observed, or no longer observed
 files. Existing snapshot files are never overwritten. These checks do not run
 repository code or connect providers. See [comparison behavior and exit codes](https://github.com/blackboxprogramming/RoadOS/blob/main/ECOSYSTEM.md#save-and-compare-observations).
+
+## NATS messaging
+
+This component has an opt-in NATS JetStream adapter for durable, content-hashed
+artifact notifications. See [NATS setup and commands](NATS.md). Local receipts
+and execution permissions remain authoritative.

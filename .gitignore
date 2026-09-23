@@ -1,1 +1,6 @@
 __pycache__/
+
+# NATS local state and credentials
+.road-nats/
+.env.nats
+*.creds
