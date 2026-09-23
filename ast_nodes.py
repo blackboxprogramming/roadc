@@ -119,6 +119,12 @@ class DictLiteral(Expression):
     pairs: List[tuple[Expression, Expression]]
 
 @dataclass
+class RecordLiteral(Expression):
+    """Named-field construction: Device{name: \"Lucidia\"}."""
+    type_name: str
+    fields: List[tuple[str, Expression]]
+
+@dataclass
 class SetLiteral(Expression):
     """Set literal: {1, 2, 3}"""
     elements: List[Expression]

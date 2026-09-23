@@ -46,6 +46,14 @@ class Environment:
         raise NameError(f"Undefined variable '{name}'")
 
 
+class RecordType:
+    """A declaration and its scope; constructed values remain plain dicts."""
+
+    def __init__(self, definition, environment):
+        self.definition = definition
+        self.environment = environment
+
+
 class Interpreter:
     def __init__(self):
         self.global_env = Environment()
@@ -118,6 +126,10 @@ class Interpreter:
             function = replace(stmt)
             function._closure_env = env
             env.set(stmt.name, function)
+
+        elif isinstance(stmt, TypeDefinition):
+            # Capture each declaration execution separately, including factory calls.
+            env.set(stmt.name, RecordType(stmt, env))
 
         elif isinstance(stmt, ReturnStatement):
             value = self.eval_expr(stmt.value, env) if stmt.value else None
@@ -207,6 +219,8 @@ class Interpreter:
             return [self.eval_expr(e, env) for e in expr.elements]
         if isinstance(expr, DictLiteral):
             return {self.eval_expr(k, env): self.eval_expr(v, env) for k, v in expr.pairs}
+        if isinstance(expr, RecordLiteral):
+            return self.eval_record(expr, env)
         if isinstance(expr, SetLiteral):
             return {self.eval_expr(e, env) for e in expr.elements}
         if isinstance(expr, TupleLiteral):
@@ -267,6 +281,31 @@ class Interpreter:
                 )
             return tuple(self.eval_expr(c, env) for c in expr.components)
         raise RuntimeError(f"Unknown expression: {type(expr).__name__}")
+
+    def eval_record(self, expr, env):
+        record_type = env.get(expr.type_name)
+        if not isinstance(record_type, RecordType):
+            raise TypeError(f"'{expr.type_name}' is not a record type at {expr.line}:{expr.column}")
+
+        definition = record_type.definition
+        declared = {field.name for field in definition.fields}
+        provided = {name for name, _ in expr.fields}
+        unknown = provided - declared
+        if unknown:
+            raise TypeError(f"Unknown field(s) for {definition.name}: {', '.join(sorted(unknown))} at {expr.line}:{expr.column}")
+        missing = [field.name for field in definition.fields
+                   if field.name not in provided and field.default_value is None]
+        if missing:
+            raise TypeError(f"Missing required field(s) for {definition.name}: {', '.join(missing)} at {expr.line}:{expr.column}")
+
+        # Validate shape before executing any initializer. Explicit values run
+        # in source order at the call site, then omitted defaults in declaration
+        # order at the defining scope. Annotations remain metadata, as elsewhere.
+        values = {name: self.eval_expr(value, env) for name, value in expr.fields}
+        for field in definition.fields:
+            if field.name not in values:
+                values[field.name] = self.eval_expr(field.default_value, record_type.environment)
+        return {field.name: values[field.name] for field in definition.fields}
 
     def eval_binary(self, expr, env):
         left = self.eval_expr(expr.left, env)

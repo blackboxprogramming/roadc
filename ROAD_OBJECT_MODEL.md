@@ -68,9 +68,9 @@ The result is a small object model with inspectable state and inspectable behavi
 | method table | dict of functions |
 | invocation | function call through the table |
 
-## `type` is the next compiler/runtime layer
+## `type` lowers to the same data model
 
-The repository already contains `TypeDefinition` and `TypeField` AST nodes, and the Quickstart documents syntax such as:
+The Python interpreter now parses and runs the Quickstart's record syntax:
 
 ```road
 type User:
@@ -78,9 +78,11 @@ type User:
     age: int
 ```
 
-The parser's `parse_type_definition` path is still a stub, so that syntax is not yet part of the working interpreter path. The next core step is to make `type` lower into the same explicit runtime model described above rather than inventing a second incompatible object system.
+`TypeDefinition` and `TypeField` retain the declaration and annotation metadata.
+`RecordLiteral` represents construction; evaluating it produces an ordinary
+dictionary, so the existing verbs, member access, indexing, and mutation apply.
 
-A future constructor can therefore be syntactic sugar:
+A constructor supplies named fields and fills omitted defaults:
 
 ```road
 type Device:
@@ -100,7 +102,16 @@ Conceptually lowering to:
 let lucidia = {"name": "Lucidia", "kind": "Raspberry Pi", "online": false}
 ```
 
-That keeps Road sovereign at the language level while Python remains only one implementation substrate.
+Construction rejects missing required fields, unknown fields, and duplicate
+fields. Defaults run only when omitted, in the declaration's lexical scope;
+literal lists and dictionaries are evaluated afresh for each construction.
+Annotations remain metadata, matching the existing interpreter: this step does
+not add a static checker or enforce types on later field assignments.
+
+See [record semantics and limits](docs/RECORD_TYPES.md) and the executable
+[`examples/record_types.road`](examples/record_types.road). The C compiler does
+not implement this syntax. Record construction does not dispatch a Route,
+authenticate an identity, or grant permissions.
 
 ## Working example
 
