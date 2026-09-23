@@ -347,6 +347,8 @@ class Interpreter:
     def eval_call(self, expr, env):
         if isinstance(expr.function, Identifier):
             name = expr.function.name
+            if name in {'map', 'filter'}:
+                return self.eval_collection_call(name, expr.arguments, env)
             builtins = {
                 'print': lambda args: print(*args),
                 'len': lambda args: len(args[0]),
@@ -364,8 +366,6 @@ class Interpreter:
                 'reversed': lambda args: list(reversed(args[0])),
                 'enumerate': lambda args: list(enumerate(args[0])),
                 'zip': lambda args: list(zip(*args)),
-                'map': lambda args: list(map(args[0], args[1])),
-                'filter': lambda args: list(filter(args[0], args[1])),
                 'input': lambda args: input(args[0] if args else ''),
                 'list': lambda args: list(args[0]) if args else [],
                 'dict': lambda args: dict(args[0]) if args else {},
@@ -394,6 +394,31 @@ class Interpreter:
         # Validate before evaluating arguments: rejected calls must not run
         # argument side effects or accidentally resolve an unbound parameter
         # through its closure environment.
+        self.validate_function_call(func, len(expr.arguments))
+        args = [self.eval_expr(a, env) for a in expr.arguments]
+        return self.execute_function(func, args)
+
+    def eval_collection_call(self, name, arguments, env):
+        supplied = len(arguments)
+        if supplied < 2 or (name == 'filter' and supplied != 2):
+            expected = 'at least 2' if name == 'map' else '2'
+            raise TypeError(f"{name}: expected {expected} arguments, got {supplied}")
+        func = self.eval_expr(arguments[0], env)
+        callback_arity = supplied - 1 if name == 'map' else 1
+        if isinstance(func, FunctionDefinition):
+            self.validate_function_call(func, callback_arity)
+            callback = lambda *values: self.execute_function(func, list(values))
+        elif callable(func):
+            callback = func
+        else:
+            raise TypeError(f"{name}: first argument must be callable")
+        inputs = [self.eval_expr(arg, env) for arg in arguments[1:]]
+        if name == 'map':
+            return list(map(callback, *inputs))
+        return list(filter(callback, inputs[0]))
+
+    def validate_function_call(self, func, supplied):
+        """Validate a Road function before evaluating supplied argument expressions."""
         names = set()
         optional = False
         required = 0
@@ -412,13 +437,14 @@ class Interpreter:
                 if optional:
                     raise TypeError(f"{func.name}: required parameter follows a default")
                 required += 1
-        supplied = len(expr.arguments)
         maximum = len(func.parameters) - int(variadic)
         if supplied < required or (not variadic and supplied > maximum):
             expected = f"at least {required}" if variadic else f"{required}..{maximum}"
             raise TypeError(f"{func.name}: expected {expected} arguments, got {supplied}")
 
-        args = [self.eval_expr(a, env) for a in expr.arguments]
+    def execute_function(self, func, args):
+        """Execute a validated Road function with already evaluated values."""
+        supplied = len(args)
         # Use closure environment if available, otherwise global
         parent_env = getattr(func, '_closure_env', self.global_env)
         call_env = Environment(parent=parent_env)
