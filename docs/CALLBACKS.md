@@ -51,8 +51,9 @@ in `sum`/`enumerate`, and keyword options are not exposed by these Road adapters
 The type keywords `int`, `float`, `bool`, `list`, `dict`, and `set` can also be
 called as constructors, for example `list(0..3)` or `int("12")`. Their use in
 annotations is unchanged. In expression position these constructor keywords
-also represent builtin function values. The `type` declaration keyword remains
-reserved. Argument value validation happens after evaluation, and short-circuit
+also represent builtin function values. `type Name:` still introduces a record
+declaration; `type(value)` and bare `type` in expressions refer to the inspection
+builtin. Argument value validation happens after evaluation, and short-circuit
 guards still skip calls.
 
 ## Builtin values and aliases
@@ -78,9 +79,10 @@ builtin. Previously direct calls bypassed such bindings. Save an alias before
 shadowing if the original builtin is needed. Constructor type keywords remain
 reserved in declaration/parameter names. Each interpreter owns its bindings.
 
-These are Road adapters, not Python type objects: the new constructor values do
-not add type-descriptor support to `isinstance`. Existing adapter signatures
-above, eager evaluation, and the C compiler's separate feature set are unchanged.
+The basic constructor values also serve as descriptors for `isinstance`.
+See [value inspection](TYPE_INSPECTION.md) for supported types and record limits.
+Existing adapter signatures above, eager evaluation, and the C compiler's
+separate feature set are unchanged.
 
 Run `python3 roadc.py run examples/builtin_callbacks.road` for a local example.
 With a trusted sibling RoadOS checkout, verify success/failure receipts too:

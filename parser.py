@@ -84,8 +84,9 @@ class Parser:
         if self.match(TokenType.FUN, TokenType.ASYNC):
             return self.parse_function_definition()
 
-        # Type definition
-        if self.match(TokenType.TYPE):
+        # A name after `type` introduces a record declaration. In other
+        # expression positions `type` names the introspection builtin.
+        if self.match(TokenType.TYPE) and self.peek_token().type == TokenType.IDENTIFIER:
             return self.parse_type_definition()
 
         # Space definition (3D)
@@ -659,7 +660,7 @@ class Parser:
         # Constructor keywords can be function values in expression position.
         # Type annotations continue to use parse_type.
         if (self.match(TokenType.INT, TokenType.FLOAT_TYPE, TokenType.BOOL_TYPE,
-                       TokenType.LIST, TokenType.DICT, TokenType.SET)):
+                       TokenType.LIST, TokenType.DICT, TokenType.SET, TokenType.TYPE)):
             self.advance()
             return Identifier(token.value, line=token.line, column=token.column)
 

@@ -17,6 +17,7 @@ RUNTIME = Path(__file__).resolve().parents[1]
 
 
 @pytest.mark.parametrize("source,status,output,error", [
+    ('print(type(3))\nprint(isinstance(3, int))\n', "completed", "int\nTrue\n", ""),
     ('let transform = map\nprint(transform(int, ["2", "3"]))\n'
      'print(filter(bool, [0, 4]))\n', "completed", "[2, 3]\n[4]\n", ""),
     ('let transform = map\nfun values():\n    print("MUST NOT RUN")\n'
