@@ -441,6 +441,11 @@ class Lexer:
                 if self.delimiter_stack:
                     continue
 
+                # A CRLF blank line has no block indentation. Consume only
+                # its carriage return here; string contents remain untouched.
+                if self.current_char() == '\r' and self.peek_char() == '\n':
+                    self.advance()
+
                 # Skip blank lines and comment-only lines
                 if self.current_char() == '\n' or self.current_char() == '#':
                     continue
