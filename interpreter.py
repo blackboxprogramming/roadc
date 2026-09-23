@@ -74,34 +74,31 @@ class Interpreter:
                 if isinstance(obj, dict):
                     obj[stmt.target.member] = value
                 else:
-                    raise TypeError("Member assignment requires a dictionary")
+                    raise TypeError('Member assignment requires a dictionary')
             else:
-                raise RuntimeError(f"Invalid assignment target: {type(stmt.target).__name__}")
+                raise TypeError('Invalid assignment target')
 
         elif isinstance(stmt, CompoundAssignment):
-            ops = {'+=': lambda a, b: a+b, '-=': lambda a, b: a-b,
-                   '*=': lambda a, b: a*b, '/=': lambda a, b: a/b}
-            if stmt.operator not in ops:
-                raise RuntimeError(f"Unsupported compound operator: {stmt.operator}")
-            # Resolve the target once, before the RHS. In particular, a call
-            # used as an object or index must not run again during the write.
-            if isinstance(stmt.target, Identifier):
-                old = env.get(stmt.target.name)
-            elif isinstance(stmt.target, (IndexAccess, MemberAccess)):
-                obj = self.eval_expr(stmt.target.object, env)
-                if isinstance(stmt.target, MemberAccess):
+            target = stmt.target
+            if isinstance(target, Identifier):
+                old = env.get(target.name)
+            elif isinstance(target, (IndexAccess, MemberAccess)):
+                obj = self.eval_expr(target.object, env)
+                if isinstance(target, MemberAccess):
                     if not isinstance(obj, dict):
-                        raise TypeError("Member assignment requires a dictionary")
-                    index = stmt.target.member
+                        raise TypeError('Compound member assignment requires a dictionary')
+                    index = target.member
                 else:
-                    index = self.eval_expr(stmt.target.index, env)
+                    index = self.eval_expr(target.index, env)
                 old = obj[index]
             else:
-                raise RuntimeError(f"Invalid assignment target: {type(stmt.target).__name__}")
+                raise TypeError('Invalid compound assignment target')
             rhs = self.eval_expr(stmt.value, env)
+            ops = {'+=': lambda a, b: a+b, '-=': lambda a, b: a-b,
+                   '*=': lambda a, b: a*b, '/=': lambda a, b: a/b}
             value = ops[stmt.operator](old, rhs)
-            if isinstance(stmt.target, Identifier):
-                env.assign(stmt.target.name, value)
+            if isinstance(target, Identifier):
+                env.assign(target.name, value)
             else:
                 obj[index] = value
 

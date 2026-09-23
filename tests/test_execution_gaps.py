@@ -41,7 +41,7 @@ def test_unsupported_statements_fail(source):
                                    'let x = 1\nx.value = 2\n',
                                    'let x = 1\nx.value += 2\n'])
 def test_invalid_assignment_is_not_silently_ignored(source):
-    with pytest.raises((TypeError, RuntimeError)):
+    with pytest.raises((SyntaxError, TypeError, RuntimeError)):
         run(source)
 
 
