@@ -12,3 +12,9 @@ Validation happens when the statement executes, not during parsing. Unexecuted
 branches are not checked, and prior side effects are not rolled back. Ordinary
 function returns and control statements inside the function's own loops retain
 their behavior. This change concerns the Python interpreter only.
+
+At the program boundary, an executed `return` outside a function or `break` /
+`continue` outside a loop raises a descriptive `RuntimeError` instead of leaking
+the interpreter's internal control-flow signal. This includes statements inside
+top-level conditionals. A top-level loop does not make `return` valid. Earlier
+effects remain, and the interpreter can run another program after the error.

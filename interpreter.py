@@ -51,8 +51,15 @@ class Interpreter:
         self.global_env = Environment()
 
     def run(self, program):
-        for stmt in program.statements:
-            self.exec_statement(stmt, self.global_env)
+        try:
+            for stmt in program.statements:
+                self.exec_statement(stmt, self.global_env)
+        except ReturnSignal:
+            raise RuntimeError('return outside a function') from None
+        except BreakSignal:
+            raise RuntimeError('break outside a loop') from None
+        except ContinueSignal:
+            raise RuntimeError('continue outside a loop') from None
 
     def exec_statement(self, stmt, env):
         if isinstance(stmt, VariableDeclaration):
