@@ -278,39 +278,39 @@ class Interpreter:
             # Support dict dot access and built-in methods
             if isinstance(obj, dict):
                 if name == 'keys':
-                    return lambda: list(obj.keys())
+                    return BuiltinFunction('dict.keys', lambda args: list(obj.keys()), 0, 0)
                 if name == 'values':
-                    return lambda: list(obj.values())
+                    return BuiltinFunction('dict.values', lambda args: list(obj.values()), 0, 0)
                 if name == 'items':
-                    return lambda: list(obj.items())
+                    return BuiltinFunction('dict.items', lambda args: list(obj.items()), 0, 0)
                 if name in obj:
                     return obj[name]
             if isinstance(obj, list):
                 if name == 'append':
-                    return lambda val: obj.append(val)
+                    return BuiltinFunction('list.append', lambda args: obj.append(args[0]))
                 if name == 'pop':
-                    return lambda: obj.pop()
+                    return BuiltinFunction('list.pop', lambda args: obj.pop(), 0, 0)
                 if name == 'length':
                     return len(obj)
             if isinstance(obj, str):
                 if name == 'length':
                     return len(obj)
                 if name == 'upper':
-                    return lambda: obj.upper()
+                    return BuiltinFunction('str.upper', lambda args: obj.upper(), 0, 0)
                 if name == 'lower':
-                    return lambda: obj.lower()
+                    return BuiltinFunction('str.lower', lambda args: obj.lower(), 0, 0)
                 if name == 'split':
-                    return lambda sep=" ": obj.split(sep)
+                    return BuiltinFunction('str.split', lambda args: obj.split(args[0] if args else ' '), 0, 1)
                 if name == 'strip':
-                    return lambda: obj.strip()
+                    return BuiltinFunction('str.strip', lambda args: obj.strip(), 0, 0)
                 if name == 'replace':
-                    return lambda old, new: obj.replace(old, new)
+                    return BuiltinFunction('str.replace', lambda args: obj.replace(*args), 2, 2)
                 if name == 'startswith':
-                    return lambda prefix: obj.startswith(prefix)
+                    return BuiltinFunction('str.startswith', lambda args: obj.startswith(args[0]))
                 if name == 'endswith':
-                    return lambda suffix: obj.endswith(suffix)
+                    return BuiltinFunction('str.endswith', lambda args: obj.endswith(args[0]))
                 if name == 'contains':
-                    return lambda sub: sub in obj
+                    return BuiltinFunction('str.contains', lambda args: args[0] in obj)
             raise AttributeError(f"'{type(obj).__name__}' has no attribute '{name}'")
         if isinstance(expr, IndexAccess):
             obj = self.eval_expr(expr.object, env)
