@@ -490,9 +490,19 @@ class Parser:
         left = self.parse_range_expression()
         operands = [left]
         operators = []
-        while self.match(TokenType.EQ, TokenType.NE, TokenType.LT,
+        while True:
+            if self.match(TokenType.EQ, TokenType.NE, TokenType.LT,
                           TokenType.GT, TokenType.LE, TokenType.GE):
-            op_token = self.advance()
+                op_token = self.advance()
+            elif self.match(TokenType.IDENTIFIER) and self.current_token().value == 'in':
+                op_token = self.advance()
+            elif (self.match(TokenType.NOT) and self.peek_token().type == TokenType.IDENTIFIER
+                  and self.peek_token().value == 'in'):
+                start = self.advance()
+                self.advance()
+                op_token = Token(start.type, 'not in', start.line, start.column)
+            else:
+                break
             operators.append(op_token)
             operands.append(self.parse_range_expression())
         if not operators:
