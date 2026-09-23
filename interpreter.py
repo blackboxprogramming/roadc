@@ -75,13 +75,28 @@ class Interpreter:
                     obj[stmt.target.member] = value
 
         elif isinstance(stmt, CompoundAssignment):
-            if isinstance(stmt.target, Identifier):
-                old = env.get(stmt.target.name)
-                rhs = self.eval_expr(stmt.value, env)
-                op = stmt.operator
-                ops = {'+=': lambda a, b: a+b, '-=': lambda a, b: a-b,
-                       '*=': lambda a, b: a*b, '/=': lambda a, b: a/b}
-                env.assign(stmt.target.name, ops[op](old, rhs))
+            target = stmt.target
+            if isinstance(target, Identifier):
+                old = env.get(target.name)
+            elif isinstance(target, (IndexAccess, MemberAccess)):
+                obj = self.eval_expr(target.object, env)
+                if isinstance(target, MemberAccess):
+                    if not isinstance(obj, dict):
+                        raise TypeError('Compound member assignment requires a dictionary')
+                    index = target.member
+                else:
+                    index = self.eval_expr(target.index, env)
+                old = obj[index]
+            else:
+                raise TypeError('Invalid compound assignment target')
+            rhs = self.eval_expr(stmt.value, env)
+            ops = {'+=': lambda a, b: a+b, '-=': lambda a, b: a-b,
+                   '*=': lambda a, b: a*b, '/=': lambda a, b: a/b}
+            value = ops[stmt.operator](old, rhs)
+            if isinstance(target, Identifier):
+                env.assign(target.name, value)
+            else:
+                obj[index] = value
 
         elif isinstance(stmt, ExpressionStatement):
             self.eval_expr(stmt.expression, env)
