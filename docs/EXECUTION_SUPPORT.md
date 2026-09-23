@@ -23,6 +23,14 @@ and spatial definitions are not executable Python-runtime features. Parsing
 them does not mean they ran. Invalid assignment targets also fail explicitly.
 Execution stops at the error; earlier side effects are not rolled back.
 
+`async fun` and `await` are parsed syntax, but the interpreter does not provide
+an async scheduler. Reaching an async declaration raises a located runtime
+error before binding its name; reaching `await` raises before evaluating its
+operand. Async functions are not silently executed synchronously. Unreached
+branches and short-circuit operands remain unevaluated. `check` validates syntax
+only and can accept these forms; its success does not establish async support.
+The unfinished `spawn` syntax is rejected by the parser.
+
 RoadOS uses the process exit code to classify a run receipt. This failure
 behavior prevents an ignored import or export from appearing as a completed
 workspace run. Run the companion check in the RoadOS repository:
