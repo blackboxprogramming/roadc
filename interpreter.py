@@ -306,12 +306,45 @@ class Interpreter:
         if not isinstance(func, FunctionDefinition):
             raise RuntimeError(f"'{func}' is not callable")
 
+        # Validate before evaluating arguments: rejected calls must not run
+        # argument side effects or accidentally resolve an unbound parameter
+        # through its closure environment.
+        names = set()
+        optional = False
+        required = 0
+        variadic = False
+        for index, param in enumerate(func.parameters):
+            if param.name in names:
+                raise TypeError(f"{func.name}: duplicate parameter '{param.name}'")
+            names.add(param.name)
+            if param.is_variadic:
+                if index != len(func.parameters) - 1 or param.default_value is not None:
+                    raise TypeError(f"{func.name}: variadic parameter must be last and have no default")
+                variadic = True
+            elif param.default_value is not None:
+                optional = True
+            else:
+                if optional:
+                    raise TypeError(f"{func.name}: required parameter follows a default")
+                required += 1
+        supplied = len(expr.arguments)
+        maximum = len(func.parameters) - int(variadic)
+        if supplied < required or (not variadic and supplied > maximum):
+            expected = f"at least {required}" if variadic else f"{required}..{maximum}"
+            raise TypeError(f"{func.name}: expected {expected} arguments, got {supplied}")
+
         args = [self.eval_expr(a, env) for a in expr.arguments]
         # Use closure environment if available, otherwise global
         parent_env = getattr(func, '_closure_env', self.global_env)
         call_env = Environment(parent=parent_env)
-        for param, arg in zip(func.parameters, args):
-            call_env.set(param.name, arg)
+        for index, param in enumerate(func.parameters):
+            if param.is_variadic:
+                value = args[index:]
+            elif index < supplied:
+                value = args[index]
+            else:
+                value = self.eval_expr(param.default_value, call_env)
+            call_env.set(param.name, value)
 
         try:
             self.exec_block(func.body, call_env)
