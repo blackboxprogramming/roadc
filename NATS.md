@@ -46,3 +46,17 @@ A JetStream acknowledgment means the broker accepted an event. It is not proof
 that a Roadie accepted work or that execution occurred. Consumers persist events
 locally and never execute messages. See the shared guide for TLS/authentication,
 retry semantics, state limits, and rollback.
+
+## Verify the launcher locally
+
+Select a trusted RoadOS checkout explicitly; this test runs its adapter code:
+
+```bash
+ROAD_TEST_BUS_ROOT=/absolute/path/to/RoadOS python3 -m pytest tests/test_nats_launcher.py -q
+```
+
+The integration checks keep networking disabled and use temporary state. They
+cover status, durable fingerprint queueing and deduplication, omitted source
+contents/paths, and rejection of network commands before opt-in. Without the
+environment variable, shared-adapter tests are skipped; the missing-dependency
+diagnostic still runs. These checks do not establish live broker delivery.

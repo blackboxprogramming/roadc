@@ -368,6 +368,12 @@ class Parser:
         """Parse expression statement or assignment"""
         expr = self.parse_expression()
 
+        if self.match(TokenType.ASSIGN, TokenType.PLUS_ASSIGN, TokenType.MINUS_ASSIGN,
+                      TokenType.STAR_ASSIGN, TokenType.SLASH_ASSIGN):
+            if not isinstance(expr, (Identifier, IndexAccess, MemberAccess)):
+                token = self.current_token()
+                raise SyntaxError(f"Invalid assignment target at {token.line}:{token.column}")
+
         # Check for assignment
         if self.match(TokenType.ASSIGN):
             token = self.advance()
@@ -481,15 +487,28 @@ class Parser:
 
     def parse_comparison_expression(self) -> Expression:
         """Parse comparison expression"""
-        left = self.parse_additive_expression()
+        left = self.parse_range_expression()
 
         while self.match(TokenType.EQ, TokenType.NE, TokenType.LT,
                           TokenType.GT, TokenType.LE, TokenType.GE):
             op_token = self.advance()
-            right = self.parse_additive_expression()
+            right = self.parse_range_expression()
             left = BinaryOp(left, op_token.value, right, line=op_token.line, column=op_token.column)
 
         return left
+
+    def parse_range_expression(self) -> Expression:
+        """Parse an exclusive range; arithmetic binds within each bound."""
+        start = self.parse_additive_expression()
+        if not self.match(TokenType.DOUBLE_DOT):
+            return start
+
+        token = self.advance()
+        end = self.parse_additive_expression()
+        if self.match(TokenType.DOUBLE_DOT):
+            current = self.current_token()
+            raise SyntaxError(f"Chained ranges are not supported at {current.line}:{current.column}")
+        return RangeExpression(start, end, line=token.line, column=token.column)
 
     def parse_additive_expression(self) -> Expression:
         """Parse addition/subtraction expression"""
@@ -624,6 +643,8 @@ class Parser:
                 components.append(self.parse_expression())
                 if self.match(TokenType.COMMA):
                     self.advance()
+                else:
+                    break
             self.expect(TokenType.RPAREN)
             return VectorLiteral(dimension, components, line=vec_token.line, column=vec_token.column)
 
@@ -635,6 +656,8 @@ class Parser:
                 elements.append(self.parse_expression())
                 if self.match(TokenType.COMMA):
                     self.advance()
+                else:
+                    break
             self.expect(TokenType.RBRACKET)
             return ListLiteral(elements, line=token.line, column=token.column)
 
@@ -701,23 +724,32 @@ class Parser:
             self.expect(TokenType.RPAREN)
             return first_expr
 
-        # Range: 0..10
-        if self.match(TokenType.INTEGER):
-            start = IntegerLiteral(token.value, line=token.line, column=token.column)
-            self.advance()
-            if self.match(TokenType.DOUBLE_DOT):
-                self.advance()
-                end_token = self.expect(TokenType.INTEGER)
-                end = IntegerLiteral(end_token.value, line=end_token.line, column=end_token.column)
-                return RangeExpression(start, end, line=token.line, column=token.column)
-            return start
-
         # Identifier
         if self.match(TokenType.IDENTIFIER):
             self.advance()
+            if self.match(TokenType.LBRACE):
+                return self.parse_record_literal(token)
             return Identifier(token.value, line=token.line, column=token.column)
 
         raise SyntaxError(f"Unexpected token {token.type.name} at {token.line}:{token.column}")
+
+    def parse_record_literal(self, type_token: Token) -> RecordLiteral:
+        """Parse TypeName{field: expression, ...}; fields must be unique."""
+        self.expect(TokenType.LBRACE)
+        fields = []
+        names = set()
+        while not self.match(TokenType.RBRACE):
+            name = self.expect(TokenType.IDENTIFIER)
+            if name.value in names:
+                raise SyntaxError(f"Duplicate field '{name.value}' at {name.line}:{name.column}")
+            names.add(name.value)
+            self.expect(TokenType.COLON)
+            fields.append((name.value, self.parse_expression()))
+            if not self.match(TokenType.RBRACE):
+                self.expect(TokenType.COMMA)
+        self.expect(TokenType.RBRACE)
+        return RecordLiteral(type_token.value, fields,
+                             line=type_token.line, column=type_token.column)
 
     # ========================================================================
     # 3D/Spatial Parsing
@@ -782,21 +814,48 @@ class Parser:
         elif obj_type == TokenType.CAMERA:
             return CameraObject(name, properties, line=token.line, column=token.column)
 
-    # Stubs for other complex features
     def parse_type_definition(self) -> TypeDefinition:
-        """Parse type definition (stub)"""
-        # TODO: Implement full type definition parsing
-        pass
+        """Parse an indented record declaration with optional field defaults."""
+        token = self.expect(TokenType.TYPE)
+        name = self.expect(TokenType.IDENTIFIER).value
+        self.expect(TokenType.COLON)
+        self.skip_newlines()
+        self.expect(TokenType.INDENT)
+        self.skip_newlines()
 
+        fields = []
+        names = set()
+        while not self.match(TokenType.DEDENT, TokenType.EOF):
+            field_token = self.expect(TokenType.IDENTIFIER)
+            if field_token.value in names:
+                raise SyntaxError(f"Duplicate field '{field_token.value}' at {field_token.line}:{field_token.column}")
+            names.add(field_token.value)
+            self.expect(TokenType.COLON)
+            annotation = self.parse_type()
+            default = None
+            if self.match(TokenType.ASSIGN):
+                self.advance()
+                default = self.parse_expression()
+            fields.append(TypeField(field_token.value, annotation, default,
+                                    line=field_token.line, column=field_token.column))
+            if not self.match(TokenType.NEWLINE, TokenType.DEDENT, TokenType.EOF):
+                current = self.current_token()
+                raise SyntaxError(f"Expected newline after field at {current.line}:{current.column}")
+            self.skip_newlines()
+
+        self.expect(TokenType.DEDENT)
+        return TypeDefinition(name, fields, False, line=token.line, column=token.column)
+
+    # Stubs for other complex features
     def parse_match_statement(self) -> MatchStatement:
-        """Parse match statement (stub)"""
-        # TODO: Implement match statement parsing
-        pass
+        """Reject match syntax until parsing and execution are implemented."""
+        token = self.current_token()
+        raise SyntaxError(f"Unsupported statement MATCH at {token.line}:{token.column}")
 
     def parse_spawn_statement(self) -> SpawnStatement:
-        """Parse spawn statement (stub)"""
-        # TODO: Implement spawn statement parsing
-        pass
+        """Reject spawn syntax until parsing and execution are implemented."""
+        token = self.current_token()
+        raise SyntaxError(f"Unsupported statement SPAWN at {token.line}:{token.column}")
 
 
 def parse(source: str, filename: str = "<stdin>") -> Program:

@@ -240,6 +240,7 @@ class Lexer:
         self.column = 1
         self.tokens: List[Token] = []
         self.indent_stack = [0]  # Track indentation levels
+        self.delimiter_stack = []  # Grouped expressions do not open blocks
 
     def current_char(self) -> Optional[str]:
         """Get current character without advancing"""
@@ -267,7 +268,10 @@ class Lexer:
 
     def skip_whitespace(self, skip_newlines: bool = False):
         """Skip whitespace (but preserve newlines for indentation unless skip_newlines=True)"""
-        while self.current_char() in ' \t\r' or (skip_newlines and self.current_char() == '\n'):
+        while self.current_char() is not None and (
+            self.current_char() in ' \t\r'
+            or (skip_newlines and self.current_char() == '\n')
+        ):
             self.advance()
 
     def skip_comment(self):
@@ -296,9 +300,17 @@ class Lexer:
         start_column = self.column
         num_str = ''
 
-        while self.current_char() and (self.current_char().isdigit() or self.current_char() == '.'):
+        while self.current_char() and self.current_char().isdigit():
             num_str += self.current_char()
             self.advance()
+
+        # A decimal point belongs to the number; .. and ... belong to operators.
+        if self.current_char() == '.' and self.peek_char() != '.':
+            num_str += self.advance()
+            while self.current_char() and self.current_char().isdigit():
+                num_str += self.advance()
+            if self.current_char() == '.' and self.peek_char() != '.':
+                raise SyntaxError(f"Invalid number at {start_line}:{start_column}")
 
         # Check for scientific notation
         if self.current_char() in ['e', 'E']:
@@ -307,14 +319,19 @@ class Lexer:
             if self.current_char() in ['+', '-']:
                 num_str += self.current_char()
                 self.advance()
+            if self.current_char() is None or not self.current_char().isdigit():
+                raise SyntaxError(f"Invalid number at {start_line}:{start_column}")
             while self.current_char() and self.current_char().isdigit():
                 num_str += self.current_char()
                 self.advance()
 
-        if '.' in num_str or 'e' in num_str or 'E' in num_str:
-            return Token(TokenType.FLOAT, float(num_str), start_line, start_column)
-        else:
-            return Token(TokenType.INTEGER, int(num_str), start_line, start_column)
+        try:
+            if '.' in num_str or 'e' in num_str or 'E' in num_str:
+                return Token(TokenType.FLOAT, float(num_str), start_line, start_column)
+            else:
+                return Token(TokenType.INTEGER, int(num_str), start_line, start_column)
+        except ValueError:
+            raise SyntaxError(f"Invalid number at {start_line}:{start_column}") from None
 
     def tokenize_string(self) -> Token:
         """Tokenize string literal"""
@@ -329,6 +346,8 @@ class Lexer:
                 self.advance()
                 # Handle escape sequences
                 escape_char = self.current_char()
+                if escape_char is None:
+                    raise SyntaxError(f"Unterminated string at {start_line}:{start_column}")
                 if escape_char == 'n':
                     string_value += '\n'
                 elif escape_char == 't':
@@ -416,6 +435,11 @@ class Lexer:
                     elif self.current_char() == '\t':
                         indent_level += 4  # Tab = 4 spaces
                     self.advance()
+
+                # Newlines inside (), [] and {} continue the same expression.
+                # Keep the surrounding statement's block indentation intact.
+                if self.delimiter_stack:
+                    continue
 
                 # Skip blank lines and comment-only lines
                 if self.current_char() == '\n' or self.current_char() == '#':
@@ -575,12 +599,25 @@ class Lexer:
             }
 
             if char in single_char_tokens:
+                if char in '([{':
+                    self.delimiter_stack.append((char, line, col))
+                elif char in ')]}':
+                    if not self.delimiter_stack:
+                        raise SyntaxError(f"Unexpected closing delimiter '{char}' at {line}:{col}")
+                    opening, _, _ = self.delimiter_stack[-1]
+                    if opening != {')': '(', ']': '[', '}': '{'}[char]:
+                        raise SyntaxError(f"Mismatched delimiter '{char}' at {line}:{col}")
+                    self.delimiter_stack.pop()
                 self.advance()
                 self.tokens.append(Token(single_char_tokens[char], char, line, col))
                 continue
 
             # Unknown character
             raise SyntaxError(f"Unexpected character '{char}' at {line}:{col}")
+
+        if self.delimiter_stack:
+            opening, line, col = self.delimiter_stack[-1]
+            raise SyntaxError(f"Unclosed delimiter '{opening}' at {line}:{col}")
 
         # Handle remaining dedents
         while len(self.indent_stack) > 1:
