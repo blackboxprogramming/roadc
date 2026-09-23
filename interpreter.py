@@ -24,6 +24,7 @@ class ContinueSignal(Exception):
 class Environment:
     def __init__(self, parent=None):
         self.vars = {}
+        self.constants = set()
         self.parent = parent
 
     def get(self, name):
@@ -38,12 +39,26 @@ class Environment:
 
     def assign(self, name, value):
         if name in self.vars:
+            if name in self.constants:
+                raise TypeError(f"Cannot reassign constant '{name}'")
             self.vars[name] = value
             return
         if self.parent:
             self.parent.assign(name, value)
             return
         raise NameError(f"Undefined variable '{name}'")
+
+    def declare(self, name, value, *, constant=False):
+        if name in self.constants:
+            raise TypeError(f"Cannot redeclare constant '{name}'")
+        self.vars[name] = value
+        if constant:
+            self.constants.add(name)
+
+    def bind_loop_variable(self, name, value):
+        if name in self.constants:
+            raise TypeError(f"Cannot reassign constant '{name}'")
+        self.vars[name] = value
 
 
 class RecordType:
@@ -95,7 +110,7 @@ class Interpreter:
             value = None
             if stmt.initializer:
                 value = self.eval_expr(stmt.initializer, env)
-            env.set(stmt.name, value)
+            env.declare(stmt.name, value, constant=stmt.is_const)
 
         elif isinstance(stmt, Assignment):
             value = self.eval_expr(stmt.value, env)
@@ -202,7 +217,7 @@ class Interpreter:
     def exec_for(self, stmt, env):
         iterable = self.eval_expr(stmt.iterable, env)
         for item in iterable:
-            env.set(stmt.variable, item)
+            env.bind_loop_variable(stmt.variable, item)
             try:
                 self.exec_block(stmt.body, env)
             except BreakSignal:
