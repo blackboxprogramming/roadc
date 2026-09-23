@@ -630,6 +630,8 @@ class Parser:
                 components.append(self.parse_expression())
                 if self.match(TokenType.COMMA):
                     self.advance()
+                else:
+                    break
             self.expect(TokenType.RPAREN)
             return VectorLiteral(dimension, components, line=vec_token.line, column=vec_token.column)
 
@@ -641,6 +643,8 @@ class Parser:
                 elements.append(self.parse_expression())
                 if self.match(TokenType.COMMA):
                     self.advance()
+                else:
+                    break
             self.expect(TokenType.RBRACKET)
             return ListLiteral(elements, line=token.line, column=token.column)
 
