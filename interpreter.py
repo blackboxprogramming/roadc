@@ -73,6 +73,10 @@ class Interpreter:
                 obj = self.eval_expr(stmt.target.object, env)
                 if isinstance(obj, dict):
                     obj[stmt.target.member] = value
+                else:
+                    raise TypeError('Member assignment requires a dictionary')
+            else:
+                raise TypeError('Invalid assignment target')
 
         elif isinstance(stmt, CompoundAssignment):
             target = stmt.target

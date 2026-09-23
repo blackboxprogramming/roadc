@@ -368,6 +368,12 @@ class Parser:
         """Parse expression statement or assignment"""
         expr = self.parse_expression()
 
+        if self.match(TokenType.ASSIGN, TokenType.PLUS_ASSIGN, TokenType.MINUS_ASSIGN,
+                      TokenType.STAR_ASSIGN, TokenType.SLASH_ASSIGN):
+            if not isinstance(expr, (Identifier, IndexAccess, MemberAccess)):
+                token = self.current_token()
+                raise SyntaxError(f"Invalid assignment target at {token.line}:{token.column}")
+
         # Check for assignment
         if self.match(TokenType.ASSIGN):
             token = self.advance()
