@@ -69,6 +69,17 @@ class Parser:
         return Program(statements, line=token.line, column=token.column)
 
     def parse_statement(self) -> Optional[Statement]:
+        """Parse one statement and reject unseparated simple statements."""
+        stmt = self.parse_statement_body()
+        if isinstance(stmt, (VariableDeclaration, Assignment, CompoundAssignment,
+                             ExpressionStatement, ReturnStatement, BreakStatement,
+                             ContinueStatement, ModuleDeclaration, ImportStatement)):
+            if not self.match(TokenType.NEWLINE, TokenType.DEDENT, TokenType.EOF):
+                token = self.current_token()
+                raise SyntaxError(f"Expected end of statement at {token.line}:{token.column}")
+        return stmt
+
+    def parse_statement_body(self) -> Optional[Statement]:
         """Parse a statement"""
         self.skip_newlines()
 

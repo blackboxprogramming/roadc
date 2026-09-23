@@ -29,3 +29,10 @@ and function parameters may end with one trailing comma. Multiline forms use
 the same rule. A trailing comma does not create an extra argument or element;
 leading/doubled commas and omitted values remain syntax errors. `{}` remains
 an empty dictionary; use `set()` for an empty set.
+
+Simple statements must end at a newline, block dedent, or end of input.
+Adjacent declarations or calls on one line, such as `let x = 1 let y = 2`,
+are rejected at the first unseparated token. This also rejects stray values
+such as `let x = 1 2`. Grouped expressions can still span multiple lines;
+compound statements retain their indented blocks. Parsing the complete file
+happens before execution, so a missing separator prevents all file effects.
