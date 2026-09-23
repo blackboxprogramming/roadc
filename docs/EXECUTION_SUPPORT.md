@@ -48,7 +48,7 @@ These checks cover the Python implementation, not C compiler parity.
 `python3 roadc.py run FILE` and `parse FILE` require exactly one UTF-8 source
 file. Missing or extra arguments exit 2 with usage on stderr before reading or
 executing source. Successful commands exit 0. File, encoding, syntax and expected
-runtime errors exit 1 with `FILE: error: MESSAGE` on stderr, without a Python
+runtime errors exit 1 with `FILE: error: ERROR_CLASS: MESSAGE` on stderr, without a Python
 traceback. Lexer/parser source locations remain in the message where available;
 runtime errors do not yet consistently carry Road source positions.
 
@@ -59,22 +59,7 @@ APIs continue to raise their original exceptions, which preserves traceback
 access for developers. Structured syntax diagnostics remain available through
 `check --json`.
 
-## Verify RoadC through RoadOS receipts
-
-The RoadC suite also includes opt-in tests that launch the real RoadOS workspace
-runner against this interpreter, then verify its saved receipts:
-
-```bash
-ROAD_TEST_ROADOS=/absolute/path/to/RoadOS python3 -m pytest tests/test_builtin_workspace.py -q
-```
-
-Choose a trusted checkout: the test executes its `workspace.py`. Each case uses
-a temporary local project, an unbound Roadie catalog and temporary receipt
-storage. Cases cover callback values, records, membership, comparisons,
-arithmetic, syntax failures, unsupported async execution, and output retained
-before failure. They assert receipt completion/failure, captured output, no
-requested provider connection, and successful receipt verification.
-
-Without `ROAD_TEST_ROADOS`, these tests skip explicitly. They do not establish
-live device dispatch or broker delivery. Offline NATS launcher checks use the
-separate `ROAD_TEST_BUS_ROOT` setting documented in `NATS.md`.
+The error-class label (for example `KeyError`, `NameError`, or
+`ZeroDivisionError`) preserves useful failure information in RoadOS receipts
+without restoring tracebacks. It is descriptive diagnostic text, not a new
+structured error schema.

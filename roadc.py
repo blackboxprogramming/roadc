@@ -176,7 +176,7 @@ def main():
             (run_file if cmd == 'run' else parse_file)(path)
         except (OSError, UnicodeError, SyntaxError, ValueError, TypeError,
                 NameError, RuntimeError, ArithmeticError, LookupError, AttributeError) as error:
-            print(f"{path}: error: {error}", file=sys.stderr)
+            print(f"{path}: error: {type(error).__name__}: {error}", file=sys.stderr)
             sys.exit(1)
     elif cmd == 'repl':
         repl()
