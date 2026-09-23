@@ -38,7 +38,7 @@ def test_target_then_index_then_rhs_evaluated_once(capsys):
     ('let x = []\nx[0] += print("rhs")\n', IndexError),
     ('let x = {}\nx.absent += print("rhs")\n', KeyError),
     ('let x = 1\nx.value += print("rhs")\n', TypeError),
-    ('1 += print("rhs")\n', TypeError),
+    ('1 += print("rhs")\n', SyntaxError),
 ])
 def test_invalid_target_fails_before_rhs(source, error, capsys):
     with pytest.raises(error):
